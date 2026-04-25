@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kebab Clicker - Build Your Empire!</title>
+    <title>Kebab Clicker Empire - Global MMO</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥙</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -127,11 +128,11 @@
         /* Desktop Scaling and Premium Feel */
         @media (min-width: 1024px) {
             :root {
-                font-size: 18px;
+                font-size: 16px;
             }
             .container {
-                max-width: 1400px !important;
-                padding: 2rem !important;
+                max-width: 1200px !important;
+                padding: 1.5rem !important;
             }
             header {
                 padding: 2rem !important;
@@ -141,10 +142,10 @@
                 gap: 2rem !important;
             }
             .kebab-button {
-                width: 320px !important;
-                height: 320px !important;
-                font-size: 8rem !important;
-                border-width: 12px !important;
+                width: 260px !important;
+                height: 260px !important;
+                font-size: 6rem !important;
+                border-width: 10px !important;
             }
             .tab-btn {
                 padding: 1rem 2rem !important;
@@ -2405,7 +2406,14 @@
         window.loginWithGoogle = function() {
             if (firebaseEnabled) {
                 const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(e => showNotification("Login failed: " + e.message, 'error'));
+                auth.signInWithPopup(provider).catch(e => {
+                    console.error("Login Error:", e);
+                    if (e.code === 'auth/unauthorized-domain') {
+                        showNotification("Error: Domain not authorized in Firebase! Please add yusagullux.github.io to Authorized Domains.", 'error');
+                    } else {
+                        showNotification("Login failed: " + e.message, 'error');
+                    }
+                });
                 return;
             }
             const username = prompt("Enter username:");
@@ -2662,8 +2670,16 @@
             chatUnsubscribe = query.limit(50).onSnapshot({ includeMetadataChanges: true }, snapshot => {
                 chatDiv.innerHTML = '';
                 
-                // Sort messages client-side to ensure visibility without server-side indices
-                const docs = [...snapshot.docs].sort((a, b) => {
+                const now = Date.now();
+                const tenMinutesInMs = 10 * 60 * 1000;
+
+                // Sort and filter messages client-side
+                const docs = [...snapshot.docs].filter(doc => {
+                    const data = doc.data({ serverTimestamps: 'estimate' });
+                    const time = data.timestamp?.toMillis() || data.clientTime || 0;
+                    // Only show messages from last 10 minutes
+                    return (now - time) < tenMinutesInMs;
+                }).sort((a, b) => {
                     const dataA = a.data({ serverTimestamps: 'estimate' });
                     const dataB = b.data({ serverTimestamps: 'estimate' });
                     const timeA = dataA.timestamp?.toMillis() || dataA.clientTime || 0;
