@@ -1,0 +1,2977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebab Clicker - Build Your Empire!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-100px) scale(1.5); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        @keyframes floatBackground {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 146, 60, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(251, 146, 60, 0.8), 0 0 60px rgba(251, 146, 60, 0.4); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes levelUp {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        @keyframes comboPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .kebab-button.clicked {
+            animation: pulse 0.2s ease;
+        }
+        .kebab-button.glowing {
+            animation: glow 2s ease-in-out infinite;
+        }
+        .click-particle {
+            position: fixed;
+            pointer-events: none;
+            font-weight: bold;
+            font-size: 1.5rem;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 100;
+        }
+        .notification {
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        .floating-kebab {
+            position: fixed;
+            font-size: 2rem;
+            opacity: 0.1;
+            pointer-events: none;
+            animation: floatBackground 6s ease-in-out infinite;
+            z-index: 0;
+        }
+        .shake {
+            animation: shake 0.3s ease;
+        }
+        .level-up {
+            animation: levelUp 0.5s ease;
+        }
+        .combo-display {
+            animation: comboPop 0.3s ease;
+        }
+        
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.5);
+            }
+        }
+        
+        .float-text {
+            position: absolute;
+            pointer-events: none;
+            font-weight: bold;
+            color: #f97316;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 1000;
+        }
+        @keyframes flipIn {
+            from { transform: rotateY(90deg); opacity: 0; }
+            to { transform: rotateY(0deg); opacity: 1; }
+        }
+        .flip-in { animation: flipIn 0.3s ease-out forwards; }
+        .mine-tile { transition: transform 0.2s, background-color 0.2s, opacity 0.2s; cursor: pointer; }
+        .mine-tile:hover:not(.revealed) { transform: scale(1.05); }
+        .mine-tile.revealed { transform: scale(0.95); opacity: 0.9; cursor: default; }
+        .card-enter { animation: slideIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100">
+    <div class="container mx-auto px-4 py-4 max-w-7xl">
+        <!-- Top Bar: Money + Rating -->
+        <header class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 mb-4">
+            <div class="flex flex-wrap justify-between items-center gap-4">
+                <!-- Money Display -->
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🥙</span>
+                    <div>
+                        <div class="text-xs text-gray-600">Kebabs</div>
+                        <div class="text-2xl font-bold text-orange-500" id="kebabCount">0</div>
+                    </div>
+                </div>
+                
+                <!-- Income Display -->
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">💰</span>
+                    <div>
+                        <div class="text-xs text-gray-600">Per Second</div>
+                        <div class="text-xl font-bold text-green-600" id="perSecond">+0</div>
+                    </div>
+                </div>
+                
+                <!-- Rating Display -->
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">⭐</span>
+                    <div>
+                        <div class="text-xs text-gray-600">Rating</div>
+                        <div class="text-xl font-bold text-yellow-500" id="ratingDisplay">⭐⭐⭐</div>
+                    </div>
+                </div>
+                
+                <!-- Reputation Display with Progress Bar -->
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">💯</span>
+                    <div class="w-24">
+                        <div class="text-xs text-gray-600">Reputation</div>
+                        <div class="text-xl font-bold text-blue-500" id="reputationDisplay">50</div>
+                        <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div id="reputationBar" class="bg-blue-500 h-full transition-all duration-300" style="width: 50%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <!-- Left Panel: Upgrades -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4">
+                <h3 class="text-lg font-bold text-gray-800 mb-3">🛒 Upgrades</h3>
+                <div id="upgradesList" class="space-y-2 max-h-96 overflow-y-auto pr-2"></div>
+            </div>
+            
+            <!-- Center Panel: Main Button -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 text-center">
+                <!-- Level & XP -->
+                <div class="mb-4">
+                    <div class="flex items-center justify-center gap-2 mb-2">
+                        <span class="text-sm text-gray-600">Level</span>
+                        <span class="text-xl font-bold text-orange-500" id="levelDisplay">1</span>
+                    </div>
+                    <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div id="xpBar" class="bg-gradient-to-r from-orange-400 to-orange-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1" id="xpDisplay">0/100</div>
+                </div>
+                
+                <!-- Main Kebab Button -->
+                <button 
+                    id="kebabButton"
+                    class="kebab-button glowing w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-8 border-orange-700 text-5xl md:text-6xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 shadow-2xl mx-auto flex items-center justify-center select-none"
+                >
+                    🥙
+                </button>
+                
+                <!-- Per Second Display (Bottom) -->
+                <div class="mt-4 text-lg font-bold text-gray-700">
+                    <span id="perSecondBottom" class="text-green-600">+0</span> kebabs / sec
+                </div>
+
+                <!-- Combo Display -->
+                <div id="comboDisplay" class="mt-3 text-xl font-bold text-orange-300 drop-shadow-lg hidden">
+                    🔥 COMBO x<span id="comboCount">0</span>
+                </div>
+                
+                <!-- Visitor Panel -->
+                <div id="visitorPanel" class="mt-3 hidden"></div>
+                
+                <!-- Supply Display with Progress Bars -->
+                <div class="flex justify-center gap-2 mt-3 flex-wrap">
+                    <div class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24">
+                        <span class="text-xl">🥩</span>
+                        <div class="flex-1">
+                            <div class="text-xs font-semibold text-gray-700 text-center"><span id="meatStock">100</span></div>
+                            <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                                <div id="meatBar" class="bg-red-500 h-full transition-all duration-300" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24">
+                        <span class="text-xl">🍞</span>
+                        <div class="flex-1">
+                            <div class="text-xs font-semibold text-gray-700 text-center"><span id="breadStock">100</span></div>
+                            <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                                <div id="breadBar" class="bg-red-500 h-full transition-all duration-300" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24">
+                        <span class="text-xl">🥬</span>
+                        <div class="flex-1">
+                            <div class="text-xs font-semibold text-gray-700 text-center"><span id="vegStock">100</span></div>
+                            <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                                <div id="vegBar" class="bg-red-500 h-full transition-all duration-300" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Auto-Supply System -->
+                <div class="flex flex-col items-center gap-1 mt-3">
+                    <div class="flex items-center gap-2">
+                        <button id="autoSupplyBtn" class="bg-gray-500 text-white px-3 py-1 rounded-lg font-semibold text-xs cursor-not-allowed" disabled onclick="toggleAutoSupply()">
+                            🤖 Auto-Supply: LOCKED
+                        </button>
+                        <button id="autoSupplyUpgradeBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg font-semibold text-xs" onclick="upgradeAutoSupply()">
+                            Buy (1000 🥙)
+                        </button>
+                    </div>
+                    <div id="autoSupplyStatus" class="text-xs text-gray-600">Not purchased</div>
+                </div>
+                
+                <!-- Weather & Time -->
+                <div class="flex justify-center items-center gap-3 mt-3">
+                    <div class="bg-blue-50 rounded-lg px-3 py-1 flex items-center gap-1">
+                        <span id="weatherIcon" class="text-xl">☀️</span>
+                        <span id="weatherText" class="text-xs font-semibold text-gray-700">Sunny</span>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg px-3 py-1 flex items-center gap-1">
+                        <span class="text-xl">🕐</span>
+                        <span id="clockDisplay" class="text-xs font-semibold text-gray-700">12:00</span>
+                    </div>
+                </div>
+                
+                <div id="flavorText" class="text-sm italic text-gray-600 mt-2 h-5 text-center transition-opacity duration-300"></div>
+                <!-- Controls -->
+                <div class="flex gap-2 justify-center mt-2">
+                    <button id="saveButton" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all">
+                        💾 Save
+                    </button>
+                    <button id="resetButton" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Stats -->
+            <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4">
+                <h3 class="text-lg font-bold text-gray-800 mb-3">📊 Stats</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-amber-50 rounded-lg p-3 text-center">
+                        <div class="text-xl font-bold text-amber-600" id="totalClicks">0</div>
+                        <div class="text-xs text-gray-600">Clicks</div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-3 text-center">
+                        <div class="text-xl font-bold text-red-600" id="playTime">0:00</div>
+                        <div class="text-xs text-gray-600">Time</div>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-3 text-center">
+                        <div class="text-xl font-bold text-orange-600" id="totalUpgrades">0</div>
+                        <div class="text-xs text-gray-600">Upgrades</div>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-3 text-center">
+                        <div class="text-xl font-bold text-yellow-600" id="maxCombo">0</div>
+                        <div class="text-xs text-gray-600">Max Combo</div>
+                    </div>
+                </div>
+                
+                <!-- Boost Section -->
+                <div class="mt-4 text-center">
+                    <button id="boostButton" class="boost-button bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-full font-bold text-sm transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed w-full">
+                        ⚡ 2x Boost (10s) - Cost: 100
+                    </button>
+                    <div class="boost-timer text-orange-500 font-bold text-sm mt-2" id="boostTimer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <nav class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-2 mb-6 relative z-10">
+            <div class="flex flex-wrap justify-center gap-2">
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="restaurants">🏪 Restaurants</button>
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="menu">📋 Menu</button>
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="supply">🚚 Supply</button>
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="cities">🌍 Cities</button>
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="games">🎮 Games</button>
+                <button class="tab-btn bg-gray-200 text-gray-700 hover:bg-orange-100 px-4 py-2 rounded-xl font-semibold transition-all" data-tab="community">🤝 Community</button>
+            </div>
+        </nav>
+
+        <!-- Tab Content Container -->
+        <div id="tabContent">
+            <!-- Main Tab (hidden - content is now in main grid) -->
+            <div id="main-tab" class="tab-content hidden"></div>
+
+            <!-- Restaurants Tab -->
+            <div id="restaurants-tab" class="tab-content">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">🏪 Your Restaurants</h3>
+                    <p class="text-gray-600 mb-4">Manage your restaurant locations in different cities!</p>
+                    <div id="restaurantsList" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- Menu Tab -->
+            <div id="menu-tab" class="tab-content hidden">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">� Menu</h3>
+                    <p class="text-gray-600 mb-4">Select and unlock menu items to sell!</p>
+                    <div id="menuList" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Supply Tab -->
+            <div id="supply-tab" class="tab-content hidden">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">🚚 Supply Chain</h3>
+                    <p class="text-gray-600 mb-4">Manage your ingredient stock and buy in bulk!</p>
+                    <div id="supplyList" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Cities Tab -->
+            <div id="cities-tab" class="tab-content hidden">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">🌍 City Expansion</h3>
+                    <p class="text-gray-600 mb-4">Expand your kebab empire to new cities!</p>
+                    <div id="citiesList" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Games Tab -->
+            <div id="games-tab" class="tab-content hidden">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6">🎮 Mini-Games</h3>
+                    <p class="text-gray-600 mb-4">Wager your kebabs to win big! All rewards are in-game kebab points.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- KebabJack -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-indigo-200 rounded-xl p-6 relative overflow-hidden">
+                            <h4 class="text-xl font-bold text-indigo-800 mb-2">🃏 KebabJack</h4>
+                            <p class="text-sm text-indigo-600 mb-4">Beat the dealer without going over 21. Win 2x, Blackjack pays 2.5x!</p>
+                            
+                            <div id="kj-setup" class="space-y-3">
+                                <label class="text-sm font-semibold text-gray-700">Bet Amount (Min 10)</label>
+                                <input type="number" id="kj-bet" class="w-full px-3 py-2 border rounded-lg" value="10" min="10">
+                                <button onclick="startKebabJack()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold transition-all">Deal Cards</button>
+                            </div>
+                            
+                            <div id="kj-game" class="hidden space-y-4">
+                                <div class="flex justify-between text-sm font-bold text-gray-600">
+                                    <span>Dealer: <span id="kj-dealer-score">?</span></span>
+                                    <span>You: <span id="kj-player-score">0</span></span>
+                                </div>
+                                <div class="min-h-[80px] bg-white/50 rounded p-2 flex gap-2 flex-wrap" id="kj-dealer-cards"></div>
+                                <div class="min-h-[80px] bg-white/50 rounded p-2 flex gap-2 flex-wrap" id="kj-player-cards"></div>
+                                <div id="kj-controls" class="flex gap-2 hidden">
+                                    <button onclick="kjHit()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-bold transition-all">Hit</button>
+                                    <button onclick="kjStand()" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded font-bold transition-all">Stand</button>
+                                </div>
+                                <div id="kj-result" class="text-center font-bold text-lg hidden p-2 rounded"></div>
+                                <button onclick="resetKebabJack()" id="kj-reset" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded font-bold hidden transition-all">Play Again</button>
+                            </div>
+                        </div>
+
+                        <!-- Kebab Mine -->
+                        <div class="bg-gradient-to-br from-red-50 to-orange-100 border-2 border-red-200 rounded-xl p-6 relative overflow-hidden">
+                            <h4 class="text-xl font-bold text-red-800 mb-2">💣 Kebab Mine</h4>
+                            <p class="text-sm text-red-600 mb-4">Uncover fresh kebabs to multiply your bet. Avoid spoiled meat!</p>
+                            
+                            <div id="km-setup" class="space-y-3">
+                                <div>
+                                    <label class="text-sm font-semibold text-gray-700">Bet Amount (Min 10)</label>
+                                    <input type="number" id="km-bet" class="w-full px-3 py-2 border rounded-lg" value="10" min="10">
+                                </div>
+                                <div>
+                                    <label class="text-sm font-semibold text-gray-700">Spoiled Meat Count (1-20)</label>
+                                    <input type="number" id="km-mines" class="w-full px-3 py-2 border rounded-lg" value="3" min="1" max="20">
+                                </div>
+                                <button onclick="startKebabMine()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-bold transition-all">Start Mining</button>
+                            </div>
+                            
+                            <div id="km-game" class="hidden space-y-4">
+                                <div class="flex justify-between items-center text-sm font-bold">
+                                    <span class="text-gray-600">Multiplier: <span id="km-multiplier" class="text-green-600 text-lg">1.00x</span></span>
+                                    <span class="text-gray-600">Payout: <span id="km-payout" class="text-orange-500 text-lg">0</span></span>
+                                </div>
+                                <div id="km-grid" class="grid grid-cols-5 gap-1 w-full max-w-[200px] mx-auto"></div>
+                                <div id="km-result" class="text-center font-bold text-lg hidden p-2 rounded"></div>
+                                <div class="flex gap-2">
+                                    <button onclick="kmCashout()" id="km-cashout" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">Cash Out</button>
+                                </div>
+                                <button onclick="resetKebabMine()" id="km-reset" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded font-bold hidden transition-all">Play Again</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Community Tab -->
+            <div id="community-tab" class="tab-content hidden">
+                <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 space-y-8">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-3xl font-black text-gray-800">🤝 Kebab Community</h2>
+                        <div id="auth-status" class="text-sm font-bold text-gray-500 italic">Play locally or <button onclick="loginWithGoogle()" class="text-orange-500 hover:underline">Sign In</button></div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-3 gap-6">
+                        <!-- Left Column: Leaderboard & Feed -->
+                        <div class="space-y-6">
+                            <!-- Global Leaderboard -->
+                            <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border-2 border-orange-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">🏆 Top Masters</h3>
+                                    <button onclick="updateLeaderboard()" class="text-[10px] bg-orange-200 text-orange-700 px-2 py-1 rounded hover:bg-orange-300">Refresh</button>
+                                </div>
+                                <div id="leaderboard-list" class="space-y-2">
+                                    <div class="text-xs text-gray-500 italic py-4 text-center">Loading masters...</div>
+                                </div>
+                            </div>
+
+                            <!-- World Feed -->
+                            <div class="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
+                                <h3 class="text-sm font-bold text-gray-600 mb-3 flex items-center gap-2 uppercase tracking-wider">📡 World Feed</h3>
+                                <div id="world-feed" class="space-y-2 max-h-[200px] overflow-y-auto text-[11px]">
+                                    <div class="text-gray-400 italic text-center">Tuning into kebab frequency...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Middle Column: Global Chat -->
+                        <div class="bg-white rounded-2xl border-2 border-orange-100 flex flex-col h-[500px] shadow-inner">
+                            <div class="p-4 border-b border-orange-100 bg-orange-50/50 rounded-t-2xl flex justify-between items-center">
+                                <h3 class="font-bold text-gray-800">💬 Global Chat</h3>
+                                <span id="online-count" class="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full animate-pulse">Online</span>
+                            </div>
+                            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm scroll-smooth">
+                                <!-- Messages here -->
+                                <div class="text-center text-xs text-gray-400 py-10">Connecting to kebab chat...</div>
+                            </div>
+                            <div class="p-3 border-t border-orange-100 bg-gray-50 rounded-b-2xl">
+                                <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex gap-2">
+                                    <input type="text" id="chat-input" maxlength="100" placeholder="Say something..." class="flex-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-orange-500 text-sm">
+                                    <button type="submit" class="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors shadow-sm">Send</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Trade Market & PvP -->
+                        <div class="space-y-6">
+                            <!-- Trade Market -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">🔄 Real-Time Market</h3>
+                                <div id="trade-market-list" class="space-y-3 min-h-[100px] max-h-[300px] overflow-y-auto">
+                                    <div class="text-xs text-gray-500 italic py-4 text-center">Loading market...</div>
+                                </div>
+                                <button onclick="createTradeOffer()" class="w-full mt-4 py-2 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition-all text-sm shadow-md">+ Create Trade Offer</button>
+                            </div>
+
+                            <!-- PvP Section -->
+                            <div class="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-6 border-2 border-red-200">
+                                <h3 class="text-lg font-bold text-gray-800 mb-2">🥷 Thief Syndicate</h3>
+                                <p class="text-[10px] text-red-600 mb-4">Target players on the leaderboard!</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="sendPvPThief('Pickpocket', 500)" class="bg-white p-2 rounded-lg border border-red-100 text-xs hover:bg-red-50 text-left">
+                                        <div class="font-bold">🧤 Pickpocket</div>
+                                        <div class="text-[9px] text-gray-400">500 🥙</div>
+                                    </button>
+                                    <button onclick="sendPvPThief('Professional', 2500)" class="bg-white p-2 rounded-lg border border-red-100 text-xs hover:bg-red-50 text-left">
+                                        <div class="font-bold">🎭 Pro</div>
+                                        <div class="text-[9px] text-gray-400">2,500 🥙</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Achievements Section -->
+        <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 mt-4">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">� Achievements</h3>
+            <div id="achievementsList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // FIREBASE BACKEND CONFIGURATION
+        // ============================================
+        // To enable real multiplayer, go to console.firebase.google.com, 
+        // create a project, and paste your web app config here:
+        const firebaseConfig = {
+            apiKey: "AIzaSyCy2Kp2DaqBdLhn_0QGIrBddna8MbzYp28",
+            authDomain: "kebab-clicker-99f4d.firebaseapp.com",
+            projectId: "kebab-clicker-99f4d",
+            storageBucket: "kebab-clicker-99f4d.firebasestorage.app",
+            messagingSenderId: "593149259214",
+            appId: "1:593149259214:web:6d7f92ef2d7dc282794f9f",
+            measurementId: "G-NTZEE6HX7R"
+        };
+
+        let db = null;
+        let auth = null;
+        let firebaseEnabled = false;
+
+        try {
+            if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("REPLACE_")) {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+                firebaseEnabled = true;
+                if (firebaseConfig.measurementId) firebase.analytics();
+                console.log("🔥 Real Backend Initialized!");
+            } else {
+                console.warn("⚠️ Firebase not configured. Running in Local Mode.");
+            }
+        } catch (e) {
+            console.error("Firebase init failed:", e);
+        }
+
+        // ============================================
+        // GAME STATE
+        // ============================================
+        let gameState = {
+            kebabs: 0,
+            totalClicks: 0,
+            totalKebabsEarned: 0,
+            level: 1,
+            xp: 0,
+            xpToNextLevel: 100,
+            combo: 0,
+            maxCombo: 0,
+            lastClickTime: 0,
+            playStartTime: Date.now(),
+            reputation: 50,
+            rating: 3, // 1-5 star rating
+            gameHour: 12,
+            weather: 'sunny',
+            weatherTimer: 0,
+            currentCity: 'istanbul',
+            currentVisitor: null, // Influencer/visitor
+            visitorEndTime: 0,
+            username: null,
+            restaurants: [{ city: 'istanbul', level: 1, openedAt: Date.now() }], // Start with Istanbul restaurant
+            selectedMenuItem: 'kebab', // Currently selected menu item
+            
+            // Upgrades organized by category
+            upgrades: {
+                // Staff Upgrades
+                staff: {
+                    chef: { owned: 0, baseCost: 50, income: 0.5, name: "Hire a Chef", icon: "👨‍🍳", category: "staff" },
+                    waiter: { owned: 0, baseCost: 100, income: 0.8, name: "Hire a Waiter", icon: "🧑", category: "staff" },
+                    manager: { owned: 0, baseCost: 500, income: 2, name: "Hire a Manager", icon: "👔", category: "staff" }
+                },
+                // Equipment Upgrades
+                equipment: {
+                    grill: { owned: 0, baseCost: 200, income: 1, name: "Buy Grill Machine", icon: "🍳", category: "equipment" },
+                    oven: { owned: 0, baseCost: 800, income: 3, name: "Buy Oven", icon: "🥘", category: "equipment" },
+                    freezer: { owned: 0, baseCost: 2000, income: 5, name: "Buy Freezer", icon: "❄️", category: "equipment" }
+                },
+                // Business Upgrades
+                business: {
+                    marketing: { owned: 0, baseCost: 300, income: 0.7, name: "Marketing Campaign", icon: "📢", category: "business" },
+                    delivery: { owned: 0, baseCost: 1500, income: 2.5, name: "Start Delivery", icon: "🚗", category: "business" },
+                    franchise: { owned: 0, baseCost: 10000, income: 8, name: "Franchise", icon: "🌍", category: "business" }
+                },
+                // Security Upgrades
+                security: {
+                    camera: { owned: 0, baseCost: 150, security: 5, name: "CCTV Cameras", icon: "📷", category: "security" },
+                    alarm: { owned: 0, baseCost: 400, security: 12, name: "Alarm System", icon: "🚨", category: "security" },
+                    guard: { owned: 0, baseCost: 1200, security: 30, name: "Security Guard", icon: "💂", category: "security" }
+                }
+            },
+            
+            // Menu items with different profit and supply usage
+            menuItems: {
+                kebab: { unlocked: true, profit: 1, supplyUsage: { meat: 1, bread: 1, vegetables: 0.5 }, name: "Kebab", icon: "�" },
+                falafel: { unlocked: false, profit: 0.8, supplyUsage: { meat: 0, bread: 1, vegetables: 1 }, cost: 500, name: "Falafel", icon: "🧆" },
+                adana: { unlocked: false, profit: 1.5, supplyUsage: { meat: 1.5, bread: 1, vegetables: 0.5 }, cost: 1000, name: "Adana Kebab", icon: "🥩" },
+                iskender: { unlocked: false, profit: 2, supplyUsage: { meat: 1.5, bread: 0.5, vegetables: 1 }, cost: 2000, name: "İskender", icon: "🍝" },
+                baklava: { unlocked: false, profit: 1.2, supplyUsage: { meat: 0, bread: 0, vegetables: 0 }, cost: 1500, name: "Baklava", icon: "🥧" }
+            },
+            
+            // Supply system with consumption
+            supply: {
+                meat: { stock: 100, price: 5, maxStock: 500 },
+                bread: { stock: 100, price: 2, maxStock: 500 },
+                vegetables: { stock: 100, price: 3, maxStock: 500 }
+            },
+            
+            // Auto-supply system (purchasable upgrade)
+            autoSupply: {
+                enabled: false,
+                level: 0,
+                costPerSecond: 0.5, // Cost to run auto-supply per second
+                refillAmount: 1, // How much to refill per tick
+                maxLevel: 5,
+                upgradeCost: 1000 // Cost to upgrade auto-supply
+            },
+            
+            // Cities with positive/negative effects
+            cities: {
+                istanbul: { unlocked: true, multiplier: 1, costBonus: 1, customerBonus: 0, name: "Istanbul", icon: "🕌" },
+                berlin: { unlocked: false, multiplier: 1.3, costBonus: 1.2, customerBonus: 0.1, cost: 25000, name: "Berlin", icon: "🏰" },
+                london: { unlocked: false, multiplier: 1.6, costBonus: 1.5, customerBonus: 0.15, cost: 75000, name: "London", icon: "🎡" },
+                newyork: { unlocked: false, multiplier: 2, costBonus: 2, customerBonus: 0.2, cost: 250000, name: "New York", icon: "🗽" },
+                tokyo: { unlocked: false, multiplier: 2.5, costBonus: 2.5, customerBonus: 0.25, cost: 500000, name: "Tokyo", icon: "🗼" }
+            },
+            
+            // Special visitors/influencers
+            visitors: {
+                ishowslow: { name: "ISHOWSLOW", icon: "🎬", bonus: 2, duration: 60, rarity: 0.01 },
+                jezxy: { name: "Jezxy", icon: "🎮", bonus: 1.8, duration: 45, rarity: 0.015 },
+                saimenat: { name: "Sai Men At", icon: "🎤", bonus: 1.5, duration: 30, rarity: 0.02 },
+                melonkusk: { name: "Melon Kusk", icon: "💼", bonus: 1.7, duration: 50, rarity: 0.012 },
+                tillbates: { name: "Till Bates", icon: "🏢", bonus: 1.6, duration: 40, rarity: 0.018 }
+            },
+            
+            achievements: {
+                firstClick: { unlocked: false, name: "First Bite", desc: "Click the kebab for the first time", icon: "🥙" },
+                hundredKebabs: { unlocked: false, name: "Snack Time", desc: "Earn 100 kebabs", icon: "💯" },
+                thousandKebabs: { unlocked: false, name: "Feast Mode", desc: "Earn 1,000 kebabs", icon: "🎉" },
+                tenThousandKebabs: { unlocked: false, name: "Kebab King", desc: "Earn 10,000 kebabs", icon: "👑" },
+                hundredThousandKebabs: { unlocked: false, name: "Empire Builder", desc: "Earn 100,000 kebabs", icon: "🏰" },
+                firstUpgrade: { unlocked: false, name: "Investment", desc: "Buy your first upgrade", icon: "💰" },
+                tenUpgrades: { unlocked: false, name: "Business Owner", desc: "Own 10 upgrades total", icon: "📈" },
+                level5: { unlocked: false, name: "Rising Star", desc: "Reach level 5", icon: "⭐" },
+                level10: { unlocked: false, name: "Kebab Master", desc: "Reach level 10", icon: "🌟" },
+                combo10: { unlocked: false, name: "Click Frenzy", desc: "Reach 10x combo", icon: "🔥" },
+                fiveStar: { unlocked: false, name: "Five Star", desc: "Reach 5-star rating", icon: "⭐⭐⭐⭐⭐" },
+                firstVisitor: { unlocked: false, name: "Famous!", desc: "Host your first special visitor", icon: "🌟" }
+            },
+            boostActive: false,
+            boostEndTime: 0
+        };
+
+        // Weather types
+        const weatherTypes = {
+            sunny: { name: "Sunny", icon: "☀️", customerBonus: 0.2, qualityBonus: 0 },
+            rainy: { name: "Rainy", icon: "🌧️", customerBonus: -0.3, qualityBonus: 0 },
+            cloudy: { name: "Cloudy", icon: "☁️", customerBonus: 0, qualityBonus: 0 },
+            heatwave: { name: "Heatwave", icon: "🔥", customerBonus: 0.5, qualityBonus: -0.2 }
+        };
+
+        // Flavor texts
+        const flavorTexts = [
+            "Extra sauce unlocked!",
+            "The aroma is irresistible!",
+            "Customers are lining up!",
+            "Perfectly grilled!",
+            "Secret recipe revealed!",
+            "Business is booming!",
+            "More meat, more profit!",
+            "The kebab empire grows!",
+            "Sizzling success!",
+            "Taste the victory!",
+            "Hungry customers everywhere!",
+            "Your kebabs are legendary!",
+            "Profit margins rising!",
+            "The grill never stops!",
+            "Kebab dreams coming true!"
+        ];
+
+        // DOM Elements (will be initialized after DOM loads)
+        let kebabCount, perSecondDisplay, perSecondBottom, kebabButton, flavorText, upgradesList, achievementsList;
+        let boostButton, boostTimer, resetButton, saveButton, levelDisplay, xpDisplay, xpBar;
+        let comboDisplay, comboCount, totalClicksDisplay, playTimeDisplay, totalUpgradesDisplay, maxComboDisplay;
+        let weatherIcon, weatherText, clockDisplay, reputationDisplay, ratingDisplay;
+        let restaurantsList, menuList, supplyList, citiesList;
+        let reputationBar, meatBar, breadBar, vegBar;
+        let autoSupplyBtn, autoSupplyUpgradeBtn, autoSupplyStatus;
+
+        // Audio context for sound effects
+        let audioContext;
+
+        function initDOMElements() {
+            kebabCount = document.getElementById('kebabCount');
+            perSecondDisplay = document.getElementById('perSecond');
+            perSecondBottom = document.getElementById('perSecondBottom');
+            kebabButton = document.getElementById('kebabButton');
+            flavorText = document.getElementById('flavorText');
+            upgradesList = document.getElementById('upgradesList');
+            achievementsList = document.getElementById('achievementsList');
+            boostButton = document.getElementById('boostButton');
+            boostTimer = document.getElementById('boostTimer');
+            resetButton = document.getElementById('resetButton');
+            saveButton = document.getElementById('saveButton');
+            levelDisplay = document.getElementById('levelDisplay');
+            xpDisplay = document.getElementById('xpDisplay');
+            xpBar = document.getElementById('xpBar');
+            comboDisplay = document.getElementById('comboDisplay');
+            comboCount = document.getElementById('comboCount');
+            totalClicksDisplay = document.getElementById('totalClicks');
+            playTimeDisplay = document.getElementById('playTime');
+            totalUpgradesDisplay = document.getElementById('totalUpgrades');
+            maxComboDisplay = document.getElementById('maxCombo');
+            weatherIcon = document.getElementById('weatherIcon');
+            weatherText = document.getElementById('weatherText');
+            clockDisplay = document.getElementById('clockDisplay');
+            reputationDisplay = document.getElementById('reputationDisplay');
+            ratingDisplay = document.getElementById('ratingDisplay');
+            restaurantsList = document.getElementById('restaurantsList');
+            menuList = document.getElementById('menuList');
+            supplyList = document.getElementById('supplyList');
+            citiesList = document.getElementById('citiesList');
+            reputationBar = document.getElementById('reputationBar');
+            meatBar = document.getElementById('meatBar');
+            breadBar = document.getElementById('breadBar');
+            vegBar = document.getElementById('vegBar');
+            autoSupplyBtn = document.getElementById('autoSupplyBtn');
+            autoSupplyUpgradeBtn = document.getElementById('autoSupplyUpgradeBtn');
+            autoSupplyStatus = document.getElementById('autoSupplyStatus');
+        }
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playClickSound() {
+            if (!audioContext) initAudio();
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        // Calculate upgrade cost with scaling (works with category structure)
+        function getUpgradeCost(category, key) {
+            const upgrade = gameState.upgrades[category][key];
+            const city = gameState.cities[gameState.currentCity];
+            const baseCost = upgrade.baseCost * city.costBonus;
+            return Math.floor(baseCost * Math.pow(1.15, upgrade.owned));
+        }
+
+        // ============================================
+        // INCOME CALCULATION
+        // ============================================
+        function getIncomePerSecond() {
+            // Check if supplies are available (only check supplies that are actually used)
+            const menuItem = gameState.menuItems[gameState.selectedMenuItem];
+            const usage = menuItem.supplyUsage;
+            
+            let hasSupplies = true;
+            if (usage.meat > 0 && gameState.supply.meat.stock <= 0) hasSupplies = false;
+            if (usage.bread > 0 && gameState.supply.bread.stock <= 0) hasSupplies = false;
+            if (usage.vegetables > 0 && gameState.supply.vegetables.stock <= 0) hasSupplies = false;
+            
+            if (!hasSupplies) {
+                return 0; // No income without required supplies
+            }
+            
+            let total = 0;
+            
+            // Calculate income from all upgrade categories
+            for (const category in gameState.upgrades) {
+                for (const key in gameState.upgrades[category]) {
+                    total += gameState.upgrades[category][key].owned * (gameState.upgrades[category][key].income || 0);
+                }
+            }
+            
+            // Apply city multiplier
+            const city = gameState.cities[gameState.currentCity];
+            total *= city.multiplier;
+            
+            // Apply selected menu item profit
+            total *= menuItem.profit;
+            
+            // Apply weather bonus
+            const weather = weatherTypes[gameState.weather];
+            total *= (1 + weather.customerBonus);
+            
+            // Apply reputation bonus (0.5x to 2x based on 0-100 reputation)
+            // Higher reputation = more customers = more income
+            total *= (0.5 + (gameState.reputation / 50));
+            
+            // Apply rating bonus (0.5x to 2x based on 1-5 stars)
+            // Better rating = premium pricing = more income
+            total *= (0.3 + (gameState.rating / 2.5));
+            
+            // Apply visitor bonus
+            if (gameState.currentVisitor && Date.now() < gameState.visitorEndTime) {
+                const visitor = gameState.visitors[gameState.currentVisitor];
+                total *= visitor.bonus;
+            }
+            
+            // Apply boost
+            if (gameState.boostActive) {
+                total *= 2;
+            }
+            
+            return total;
+        }
+        
+        // ============================================
+        // SUPPLY CONSUMPTION
+        // ============================================
+        function consumeSupplies() {
+            const menuItem = gameState.menuItems[gameState.selectedMenuItem];
+            const usage = menuItem.supplyUsage;
+            const income = getIncomePerSecond();
+            const restaurantCount = gameState.restaurants.length;
+            
+            // Only consume if there's income
+            if (income <= 0) return;
+            
+            // Scale consumption with number of restaurants
+            const consumptionMultiplier = 0.1 * restaurantCount; // More restaurants = more consumption
+            
+            // Consume supplies every tick
+            if (usage.meat > 0 && gameState.supply.meat.stock > 0) {
+                gameState.supply.meat.stock = Math.max(0, gameState.supply.meat.stock - (usage.meat * consumptionMultiplier));
+            }
+            if (usage.bread > 0 && gameState.supply.bread.stock > 0) {
+                gameState.supply.bread.stock = Math.max(0, gameState.supply.bread.stock - (usage.bread * consumptionMultiplier));
+            }
+            if (usage.vegetables > 0 && gameState.supply.vegetables.stock > 0) {
+                gameState.supply.vegetables.stock = Math.max(0, gameState.supply.vegetables.stock - (usage.vegetables * consumptionMultiplier));
+            }
+            
+            // Auto-supply system (purchasable upgrade)
+            if (gameState.autoSupply.enabled && gameState.autoSupply.level > 0) {
+                runAutoSupply();
+            }
+            
+            // Check if supplies are empty and apply consequences
+            const hasRequiredSupplies = (usage.meat === 0 || gameState.supply.meat.stock > 0) &&
+                                       (usage.bread === 0 || gameState.supply.bread.stock > 0) &&
+                                       (usage.vegetables === 0 || gameState.supply.vegetables.stock > 0);
+            
+            if (!hasRequiredSupplies) {
+                // Production stops (income already returns 0 if no supplies)
+                // Reputation decreases faster when supplies are empty
+                gameState.reputation = Math.max(0, gameState.reputation - 0.1);
+            } else {
+                // Passive reputation gain when supplies are good
+                gameState.reputation = Math.min(100, gameState.reputation + 0.02);
+            }
+            gameState.rating = Math.max(1, Math.min(5, Math.floor(gameState.reputation / 20) + 1));
+        }
+        
+        // ============================================
+        // AUTO-SUPPLY SYSTEM (PURCHASABLE UPGRADE)
+        // ============================================
+        function runAutoSupply() {
+            const auto = gameState.autoSupply;
+            const cost = auto.costPerSecond / 10; // Cost per tick
+            
+            // Check if player can afford the running cost
+            if (gameState.kebabs < cost) {
+                auto.enabled = false;
+                showNotification('Auto-supply disabled: Not enough kebabs!');
+                updateAutoSupplyUI();
+                return;
+            }
+            
+            // Deduct cost
+            gameState.kebabs -= cost;
+            
+            // Refill supplies based on level
+            const refillAmount = auto.refillAmount * auto.level;
+            
+            if (gameState.supply.meat.stock < gameState.supply.meat.maxStock) {
+                gameState.supply.meat.stock = Math.min(gameState.supply.meat.maxStock, gameState.supply.meat.stock + refillAmount);
+            }
+            if (gameState.supply.bread.stock < gameState.supply.bread.maxStock) {
+                gameState.supply.bread.stock = Math.min(gameState.supply.bread.maxStock, gameState.supply.bread.stock + refillAmount);
+            }
+            if (gameState.supply.vegetables.stock < gameState.supply.vegetables.maxStock) {
+                gameState.supply.vegetables.stock = Math.min(gameState.supply.vegetables.maxStock, gameState.supply.vegetables.stock + refillAmount);
+            }
+        }
+        
+        window.toggleAutoSupply = function() {
+            if (gameState.autoSupply.level === 0) {
+                showNotification('Purchase auto-supply upgrade first!');
+                return;
+            }
+            gameState.autoSupply.enabled = !gameState.autoSupply.enabled;
+            updateAutoSupplyUI();
+        };
+        
+        window.upgradeAutoSupply = function() {
+            const auto = gameState.autoSupply;
+            if (auto.level >= auto.maxLevel) {
+                showNotification('Auto-supply already at max level!');
+                return;
+            }
+            if (gameState.kebabs >= auto.upgradeCost) {
+                gameState.kebabs -= auto.upgradeCost;
+                auto.level++;
+                auto.upgradeCost = Math.floor(auto.upgradeCost * 2);
+                auto.refillAmount += 0.5;
+                // No notification - UI updates immediately
+                updateAutoSupplyUI();
+                updateDisplay();
+            }
+        };
+        
+        function updateAutoSupplyUI() {
+            const btn = document.getElementById('autoSupplyBtn');
+            const upgradeBtn = document.getElementById('autoSupplyUpgradeBtn');
+            const statusDiv = document.getElementById('autoSupplyStatus');
+            
+            if (gameState.autoSupply.level === 0) {
+                btn.textContent = '🤖 Auto-Supply: LOCKED';
+                btn.classList.remove('bg-green-500', 'hover:bg-green-600', 'bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-gray-500', 'cursor-not-allowed');
+                btn.disabled = true;
+                upgradeBtn.textContent = `Buy (${gameState.autoSupply.upgradeCost} 🥙)`;
+                upgradeBtn.disabled = false;
+                statusDiv.textContent = 'Not purchased';
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-500', 'cursor-not-allowed');
+                if (gameState.autoSupply.enabled) {
+                    btn.textContent = '🤖 Auto-Supply: ON';
+                    btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                    statusDiv.textContent = `Running (${gameState.autoSupply.costPerSecond}/s)`;
+                } else {
+                    btn.textContent = '🤖 Auto-Supply: OFF';
+                    btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                    statusDiv.textContent = 'Paused';
+                }
+                
+                if (gameState.autoSupply.level >= gameState.autoSupply.maxLevel) {
+                    upgradeBtn.textContent = 'MAX LEVEL';
+                    upgradeBtn.disabled = true;
+                } else {
+                    upgradeBtn.textContent = `Upgrade (${gameState.autoSupply.upgradeCost} 🥙)`;
+                    upgradeBtn.disabled = false;
+                }
+            }
+        }
+        
+        // Manual supply restocking
+        window.buySupply = function(type, amount) {
+            const item = gameState.supply[type];
+            const cost = item.price * amount;
+            
+            if (gameState.kebabs >= cost) {
+                if (item.stock + amount > item.maxStock) {
+                    showNotification('Cannot exceed max stock!');
+                    return;
+                }
+                gameState.kebabs -= cost;
+                item.stock += amount;
+                // No notification - UI updates immediately
+                renderSupply();
+                updateDisplay();
+            }
+        };
+        
+        // ============================================
+        // VISITOR SYSTEM
+        // ============================================
+        function trySpawnVisitor() {
+            if (gameState.currentVisitor && Date.now() < gameState.visitorEndTime) {
+                return; // Visitor already active
+            }
+            
+            // Try to spawn a rare visitor
+            for (const key in gameState.visitors) {
+                const visitor = gameState.visitors[key];
+                if (Math.random() < visitor.rarity) {
+                    gameState.currentVisitor = key;
+                    gameState.visitorEndTime = Date.now() + (visitor.duration * 1000);
+                    // No notification - shown in visitor panel
+                    if (!gameState.achievements.firstVisitor.unlocked) {
+                        gameState.achievements.firstVisitor.unlocked = true;
+                        showNotification('🏆 Achievement: Famous!');
+                    }
+                    return;
+                }
+            }
+        }
+
+        // ============================================
+        // DISPLAY UPDATE
+        // ============================================
+        function updateDisplay() {
+            kebabCount.textContent = Math.floor(gameState.kebabs);
+            const income = Math.floor(getIncomePerSecond());
+            perSecondDisplay.textContent = `+${income} per second`;
+            if (perSecondBottom) perSecondBottom.textContent = `+${income}`;
+            
+            // Update level and XP
+            levelDisplay.textContent = gameState.level;
+            xpDisplay.textContent = `${Math.floor(gameState.xp)}/${gameState.xpToNextLevel}`;
+            xpBar.style.width = `${(gameState.xp / gameState.xpToNextLevel) * 100}%`;
+            
+            // Update stats
+            totalClicksDisplay.textContent = gameState.totalClicks;
+            let totalUpgrades = 0;
+            for (const category in gameState.upgrades) {
+                for (const key in gameState.upgrades[category]) {
+                    totalUpgrades += gameState.upgrades[category][key].owned;
+                }
+            }
+            totalUpgradesDisplay.textContent = totalUpgrades;
+            maxComboDisplay.textContent = gameState.maxCombo;
+            
+            // Update play time
+            const playSeconds = Math.floor((Date.now() - gameState.playStartTime) / 1000);
+            const minutes = Math.floor(playSeconds / 60);
+            const seconds = playSeconds % 60;
+            playTimeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update weather
+            const weather = weatherTypes[gameState.weather];
+            weatherIcon.textContent = weather.icon;
+            weatherText.textContent = weather.name;
+            
+            // Update clock
+            const hours = Math.floor(gameState.gameHour);
+            const mins = Math.floor((gameState.gameHour % 1) * 60);
+            clockDisplay.textContent = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            
+            // Update reputation and rating
+            reputationDisplay.textContent = Math.floor(gameState.reputation);
+            gameState.rating = Math.max(1, Math.min(5, Math.floor(gameState.reputation / 20) + 1));
+            ratingDisplay.textContent = '⭐'.repeat(gameState.rating);
+            
+            // Update reputation progress bar
+            const reputationBar = document.getElementById('reputationBar');
+            if (reputationBar) {
+                reputationBar.style.width = `${gameState.reputation}%`;
+            }
+            
+            // Update visitor panel
+            updateVisitorPanel();
+            
+            // Update supply display
+            updateSupplyDisplay();
+            
+            // Update upgrade affordability only
+            updateUpgradeAffordability();
+            
+            // Update achievements
+            renderAchievements();
+            
+            // Update boost button
+            updateBoostButton();
+        }
+        
+        // Update visitor panel
+        function updateVisitorPanel() {
+            const visitorPanel = document.getElementById('visitorPanel');
+            if (!visitorPanel) return;
+            
+            if (gameState.currentVisitor && Date.now() < gameState.visitorEndTime) {
+                const visitor = gameState.visitors[gameState.currentVisitor];
+                const remaining = Math.ceil((gameState.visitorEndTime - Date.now()) / 1000);
+                visitorPanel.innerHTML = `
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-xl flex items-center gap-2">
+                        <span class="text-2xl">${visitor.icon}</span>
+                        <span class="font-semibold">${visitor.name}</span>
+                        <span class="text-sm">${visitor.bonus}x income</span>
+                        <span class="text-sm">${remaining}s left</span>
+                    </div>
+                `;
+                visitorPanel.classList.remove('hidden');
+            } else {
+                visitorPanel.classList.add('hidden');
+                gameState.currentVisitor = null;
+            }
+        }
+        
+        // Update supply display
+        function updateSupplyDisplay() {
+            const meatDisplay = document.getElementById('meatStock');
+            const breadDisplay = document.getElementById('breadStock');
+            const vegDisplay = document.getElementById('vegStock');
+            const meatBar = document.getElementById('meatBar');
+            const breadBar = document.getElementById('breadBar');
+            const vegBar = document.getElementById('vegBar');
+            
+            if (meatDisplay) meatDisplay.textContent = Math.floor(gameState.supply.meat.stock);
+            if (breadDisplay) breadDisplay.textContent = Math.floor(gameState.supply.bread.stock);
+            if (vegDisplay) vegDisplay.textContent = Math.floor(gameState.supply.vegetables.stock);
+            
+            // Update progress bars
+            if (meatBar) meatBar.style.width = `${(gameState.supply.meat.stock / gameState.supply.meat.maxStock) * 100}%`;
+            if (breadBar) breadBar.style.width = `${(gameState.supply.bread.stock / gameState.supply.bread.maxStock) * 100}%`;
+            if (vegBar) vegBar.style.width = `${(gameState.supply.vegetables.stock / gameState.supply.vegetables.maxStock) * 100}%`;
+        }
+
+        // Tab navigation
+        function setupTabNavigation() {
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    
+                    // Update button styles
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('bg-orange-500', 'text-white');
+                        btn.classList.add('bg-gray-200', 'text-gray-700');
+                    });
+                    button.classList.remove('bg-gray-200', 'text-gray-700');
+                    button.classList.add('bg-orange-500', 'text-white');
+                    
+                    // Show/hide content
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+                    
+                    // Render tab-specific content
+                    if (tabId === 'restaurants') renderRestaurants();
+                    if (tabId === 'menu') renderMenu();
+                    if (tabId === 'supply') renderSupply();
+                    if (tabId === 'cities') renderCities();
+                });
+            });
+        }
+
+        // Time cycle (1 real minute = 1 game hour)
+        function updateTimeCycle() {
+            gameState.gameHour += 1/60; // 1 real second = 1 game minute
+            if (gameState.gameHour >= 24) {
+                gameState.gameHour = 0;
+            }
+        }
+
+        // Weather system
+        function updateWeather() {
+            gameState.weatherTimer++;
+            if (gameState.weatherTimer >= 180) { // Change weather every 3 minutes (180 seconds)
+                gameState.weatherTimer = 0;
+                const weathers = Object.keys(weatherTypes);
+                gameState.weather = weathers[Math.floor(Math.random() * weathers.length)];
+                // No notification - shown in UI panel
+            }
+        }
+
+        // Render restaurants tab
+        function renderRestaurants() {
+            if (!restaurantsList) return;
+            restaurantsList.innerHTML = '';
+            
+            if (gameState.restaurants.length === 0) {
+                restaurantsList.innerHTML = '<p class="text-gray-500 text-center">No restaurants yet. Unlock cities to open restaurants!</p>';
+                return;
+            }
+            
+            gameState.restaurants.forEach((restaurant, index) => {
+                const city = gameState.cities[restaurant.city];
+                const restaurantItem = document.createElement('div');
+                restaurantItem.className = 'bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-200 rounded-xl p-4';
+                restaurantItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-gray-800">${city.icon} ${city.name} Restaurant</div>
+                            <div class="text-sm text-gray-600">Level ${restaurant.level}</div>
+                            <div class="text-sm text-gray-600">Income: x${city.multiplier}</div>
+                        </div>
+                        <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm" onclick="closeRestaurant(${index})">
+                            Close
+                        </button>
+                    </div>
+                `;
+                restaurantsList.appendChild(restaurantItem);
+            });
+        }
+        
+        window.openRestaurant = function(cityKey) {
+            const city = gameState.cities[cityKey];
+            if (!city.unlocked) return;
+            
+            // Check if already have restaurant in this city
+            const existing = gameState.restaurants.find(r => r.city === cityKey);
+            if (existing) {
+                showNotification('You already have a restaurant in this city!');
+                return;
+            }
+            
+            gameState.restaurants.push({
+                city: cityKey,
+                level: 1,
+                openedAt: Date.now()
+            });
+            
+            // No notification - UI updates immediately
+            renderRestaurants();
+            renderCities();
+        };
+        
+        window.closeRestaurant = function(index) {
+            const restaurant = gameState.restaurants[index];
+            gameState.restaurants.splice(index, 1);
+            // No notification - UI updates immediately
+            renderRestaurants();
+            renderCities();
+        };
+        
+        window.unlockCity = function(key) {
+            const city = gameState.cities[key];
+            if (gameState.kebabs >= city.cost && !city.unlocked) {
+                gameState.kebabs -= city.cost;
+                city.unlocked = true;
+                // No notification - UI updates immediately
+                renderCities();
+                updateDisplay();
+            }
+        };
+        
+        window.switchCity = function(key) {
+            gameState.currentCity = key;
+            // No notification - UI updates immediately
+            renderCities();
+            updateDisplay();
+        };
+
+        // Render menu tab
+        function renderMenu() {
+            if (!menuList) return;
+            menuList.innerHTML = '';
+            for (const key in gameState.menuItems) {
+                const item = gameState.menuItems[key];
+                const canAfford = gameState.kebabs >= (item.cost || 0);
+                const isSelected = gameState.selectedMenuItem === key;
+                
+                const menuItem = document.createElement('div');
+                menuItem.className = `bg-orange-50 border-2 ${isSelected ? 'border-orange-500' : 'border-orange-200'} rounded-xl p-4 ${canAfford && !item.unlocked ? 'hover:border-orange-400 cursor-pointer' : item.unlocked ? 'hover:border-orange-400 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`;
+                menuItem.innerHTML = `
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">${item.icon}</span>
+                        <div>
+                            <div class="font-bold text-gray-800">${item.name} ${isSelected ? '✓' : ''}</div>
+                            <div class="text-sm text-gray-600">Profit: x${item.profit}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm font-semibold ${item.unlocked ? 'text-green-600' : 'text-orange-600'}">
+                        ${item.unlocked ? (isSelected ? 'Selected' : 'Click to select') : `Cost: ${item.cost.toLocaleString()} 🥙`}
+                    </div>
+                `;
+                
+                if (item.unlocked) {
+                    menuItem.addEventListener('click', () => selectMenuItem(key));
+                } else if (canAfford) {
+                    menuItem.addEventListener('click', () => unlockMenuItem(key));
+                }
+                
+                menuList.appendChild(menuItem);
+            }
+        }
+
+        function unlockMenuItem(key) {
+            const item = gameState.menuItems[key];
+            if (gameState.kebabs >= item.cost && !item.unlocked) {
+                gameState.kebabs -= item.cost;
+                item.unlocked = true;
+                showNotification(`Added ${item.name} to menu!`);
+                renderMenu();
+                updateDisplay();
+            }
+        }
+        
+        function selectMenuItem(key) {
+            gameState.selectedMenuItem = key;
+            showNotification(`Now selling ${gameState.menuItems[key].name}!`);
+            renderMenu();
+            updateDisplay();
+        }
+
+        // Render cities tab
+        function renderCities() {
+            if (!citiesList) return;
+            citiesList.innerHTML = '';
+            for (const key in gameState.cities) {
+                const city = gameState.cities[key];
+                const canAfford = gameState.kebabs >= city.cost;
+                const isCurrent = gameState.currentCity === key;
+                const hasRestaurant = gameState.restaurants.find(r => r.city === key);
+                
+                const cityItem = document.createElement('div');
+                cityItem.className = `bg-gradient-to-br from-orange-50 to-amber-100 border-2 ${isCurrent ? 'border-orange-500' : 'border-orange-200'} rounded-xl p-4`;
+                cityItem.innerHTML = `
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-3xl">${city.icon}</span>
+                        <div>
+                            <div class="font-bold text-gray-800">${city.name}</div>
+                            <div class="text-sm text-gray-600">Income: x${city.multiplier} | Cost: x${city.costBonus}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        ${!city.unlocked ? 
+                            `<button class="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm ${canAfford ? '' : 'opacity-50 cursor-not-allowed'}" ${canAfford ? '' : 'disabled'} onclick="unlockCity('${key}')">
+                                Unlock (${city.cost.toLocaleString()} 🥙)
+                            </button>` :
+                            `<button class="flex-1 ${isCurrent ? 'bg-green-500' : 'bg-orange-500'} hover:bg-green-600 text-white py-2 rounded-lg text-sm" onclick="switchCity('${key}')">
+                                ${isCurrent ? '📍 Current' : 'Move Here'}
+                            </button>
+                            ${!hasRestaurant ? 
+                                `<button class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm" onclick="openRestaurant('${key}')">
+                                    Open Restaurant
+                                </button>` :
+                                `<span class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg text-sm text-center">Restaurant Open</span>`
+                            }`
+                        }
+                    </div>
+                `;
+                
+                citiesList.appendChild(cityItem);
+            }
+        }
+
+
+        // Render supply tab
+        function renderSupply() {
+            if (!supplyList) return;
+            supplyList.innerHTML = '';
+            for (const key in gameState.supply) {
+                const item = gameState.supply[key];
+                const icon = key === 'meat' ? '🥩' : key === 'bread' ? '🍞' : '🥬';
+                const name = key.charAt(0).toUpperCase() + key.slice(1);
+                
+                const supplyItem = document.createElement('div');
+                supplyItem.className = `bg-red-50 border-2 border-red-200 rounded-xl p-4`;
+                supplyItem.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-3xl">${icon}</span>
+                        <div class="text-right">
+                            <div class="font-bold text-gray-800">${name}</div>
+                            <div class="text-sm text-gray-600">Stock: ${Math.floor(item.stock)}/${item.maxStock}</div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3">Price: ${item.price} 🥙 per unit</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm" onclick="buySupply('${key}', 10)">
+                            +10
+                            <div class="text-xs opacity-75">${item.price * 10} 🥙</div>
+                        </button>
+                        <button class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm" onclick="buySupply('${key}', 50)">
+                            +50
+                            <div class="text-xs opacity-75">${item.price * 50} 🥙</div>
+                        </button>
+                        <button class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white py-2 rounded-lg text-sm" onclick="buySupply('${key}', 100)">
+                            +100
+                            <div class="text-xs opacity-75">${item.price * 100} 🥙</div>
+                        </button>
+                    </div>
+                `;
+                
+                supplyList.appendChild(supplyItem);
+            }
+        }
+
+        // ============================================
+        // UPGRADE RENDERING (CATEGORIZED)
+        // ============================================
+        function renderUpgrades() {
+            if (!upgradesList) {
+                console.error('upgradesList element not found!');
+                return;
+            }
+            console.log('Rendering upgrades, upgradesList found:', upgradesList);
+            console.log('gameState.upgrades:', gameState.upgrades);
+            upgradesList.innerHTML = '';
+            
+            // Render each category
+            for (const category in gameState.upgrades) {
+                console.log('Rendering category:', category);
+                // Add category header
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'text-lg font-bold text-gray-700 mt-4 mb-2 capitalize';
+                categoryHeader.textContent = category;
+                upgradesList.appendChild(categoryHeader);
+                
+                // Render upgrades in this category
+                for (const key in gameState.upgrades[category]) {
+                    const upgrade = gameState.upgrades[category][key];
+                    const cost = getUpgradeCost(category, key);
+                    const canAfford = gameState.kebabs >= cost;
+                    
+                    const upgradeItem = document.createElement('div');
+                    upgradeItem.className = `upgrade-item bg-amber-50 border-2 border-amber-200 rounded-xl p-4 transition-all duration-200 ${canAfford ? 'hover:border-orange-400 hover:bg-orange-50 cursor-pointer hover:translate-x-1' : 'opacity-50 cursor-not-allowed'}`;
+                    upgradeItem.dataset.category = category;
+                    upgradeItem.dataset.key = key;
+                    upgradeItem.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold text-lg text-gray-800">${upgrade.icon} ${upgrade.name}</span>
+                            <span class="bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">${cost.toLocaleString()} 🥙</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600 text-sm">
+                            <span>${upgrade.income ? '+' + upgrade.income + '/sec' : '+' + upgrade.security + ' Security'}</span>
+                            <span class="font-semibold text-orange-600">Owned: ${upgrade.owned}</span>
+                        </div>
+                    `;
+                    
+                    upgradeItem.addEventListener('click', () => buyUpgrade(category, key));
+                    
+                    upgradesList.appendChild(upgradeItem);
+                }
+            }
+        }
+
+        // Update upgrade affordability without recreating DOM
+        function updateUpgradeAffordability() {
+            if (!upgradesList) return;
+            const items = upgradesList.querySelectorAll('.upgrade-item');
+            items.forEach(item => {
+                const category = item.dataset.category;
+                const key = item.dataset.key;
+                const upgrade = gameState.upgrades[category][key];
+                const cost = getUpgradeCost(category, key);
+                const canAfford = gameState.kebabs >= cost;
+                
+                // Update cost display
+                const costSpan = item.querySelector('.bg-red-500');
+                if (costSpan) {
+                    costSpan.textContent = `${cost.toLocaleString()} 🥙`;
+                }
+                
+                // Update owned count
+                const ownedSpan = item.querySelector('.font-semibold');
+                if (ownedSpan) {
+                    ownedSpan.textContent = `Owned: ${upgrade.owned}`;
+                }
+                
+                // Update affordability classes
+                if (canAfford) {
+                    item.classList.remove('opacity-50', 'cursor-not-allowed');
+                    item.classList.add('hover:border-orange-400', 'hover:bg-orange-50', 'cursor-pointer', 'hover:translate-x-1');
+                } else {
+                    item.classList.add('opacity-50', 'cursor-not-allowed');
+                    item.classList.remove('hover:border-orange-400', 'hover:bg-orange-50', 'cursor-pointer', 'hover:translate-x-1');
+                }
+            });
+        }
+
+        // Render achievements
+        function renderAchievements() {
+            if (!achievementsList) {
+                console.error('achievementsList element not found!');
+                return;
+            }
+            achievementsList.innerHTML = '';
+            
+            for (const key in gameState.achievements) {
+                const achievement = gameState.achievements[key];
+                
+                const achievementItem = document.createElement('div');
+                achievementItem.className = `achievement-item ${achievement.unlocked ? 'bg-amber-100 border-amber-400' : 'bg-gray-50 border-gray-200'} border-2 rounded-xl p-4 flex items-center gap-3 transition-all duration-200`;
+                achievementItem.innerHTML = `
+                    <span class="text-3xl">${achievement.icon}</span>
+                    <div class="flex-1">
+                        <div class="font-bold text-gray-800">${achievement.name}</div>
+                        <div class="text-sm text-gray-600">${achievement.desc}</div>
+                    </div>
+                    ${achievement.unlocked ? '<span class="text-orange-500 text-xl">✓</span>' : '<span class="text-gray-300 text-xl">🔒</span>'}
+                `;
+                
+                achievementsList.appendChild(achievementItem);
+            }
+        }
+
+        // Update boost button
+        function updateBoostButton() {
+            const boostCost = 100;
+            const canAfford = gameState.kebabs >= boostCost && !gameState.boostActive;
+            
+            boostButton.disabled = !canAfford;
+            
+            if (gameState.boostActive) {
+                const remaining = Math.ceil((gameState.boostEndTime - Date.now()) / 1000);
+                boostTimer.textContent = `⚡ Boost active: ${remaining}s`;
+            } else {
+                boostTimer.textContent = '';
+            }
+        }
+
+        function setupEventListeners() {
+            // Click handler
+            kebabButton.addEventListener('click', (e) => {
+                // Check if supplies are available
+                const menuItem = gameState.menuItems[gameState.selectedMenuItem];
+                const usage = menuItem.supplyUsage;
+                
+                let hasSupplies = true;
+                if (usage.meat > 0 && gameState.supply.meat.stock <= 0) hasSupplies = false;
+                if (usage.bread > 0 && gameState.supply.bread.stock <= 0) hasSupplies = false;
+                if (usage.vegetables > 0 && gameState.supply.vegetables.stock <= 0) hasSupplies = false;
+                
+                if (!hasSupplies) {
+                    kebabButton.classList.add('shake');
+                    setTimeout(() => kebabButton.classList.remove('shake'), 300);
+                    createFloatingText(e, "No Supplies!");
+                    return;
+                }
+
+                const clickValue = 1 + (gameState.level * 0.1);
+             gameState.kebabs += clickValue;
+             gameState.totalClicks++;
+             gameState.totalKebabsEarned += clickValue;
+            
+            // XP gain
+            const xpGain = 1;
+            gameState.xp += xpGain;
+            
+            // Level up check
+            if (gameState.xp >= gameState.xpToNextLevel) {
+                gameState.level++;
+                gameState.xp -= gameState.xpToNextLevel;
+                gameState.xpToNextLevel = Math.floor(gameState.xpToNextLevel * 1.5);
+                showNotification(`🎉 Level up! You are now level ${gameState.level}!`);
+                levelDisplay.classList.add('level-up');
+                setTimeout(() => levelDisplay.classList.remove('level-up'), 500);
+            }
+            
+            // Combo system
+            const now = Date.now();
+            if (now - gameState.lastClickTime < 500) { // 500ms window
+                gameState.combo++;
+                if (gameState.combo > gameState.maxCombo) {
+                    gameState.maxCombo = gameState.combo;
+                }
+            } else {
+                gameState.combo = 1;
+            }
+            gameState.lastClickTime = now;
+            
+            // Active reputation gain
+            let repGain = 0.01;
+            if (gameState.combo >= 10) repGain += 0.04; // Combo bonus
+            gameState.reputation = Math.min(100, gameState.reputation + repGain);
+            gameState.rating = Math.max(1, Math.min(5, Math.floor(gameState.reputation / 20) + 1));
+            
+            // Update combo display
+            if (gameState.combo >= 5) {
+                comboDisplay.classList.remove('hidden');
+                comboCount.textContent = gameState.combo;
+                comboDisplay.classList.remove('combo-display');
+                void comboDisplay.offsetWidth; // Trigger reflow
+                comboDisplay.classList.add('combo-display');
+            } else {
+                comboDisplay.classList.add('hidden');
+            }
+            
+            // Button animation
+            kebabButton.classList.add('shake');
+            setTimeout(() => kebabButton.classList.remove('shake'), 300);
+            
+            // Play sound
+            playClickSound();
+            
+            // Create floating +1 text
+            createFloatingText(e, `+${clickValue.toFixed(1)}`);
+            
+            // Update flavor text
+            if (Math.random() < 0.1 && flavorText) {
+                flavorText.textContent = flavorTexts[Math.floor(Math.random() * flavorTexts.length)];
+            }
+            
+            updateDisplay();
+        });
+
+        if (boostButton) boostButton.addEventListener('click', activateBoost);
+        if (saveButton) saveButton.addEventListener('click', saveGame);
+        if (resetButton) resetButton.addEventListener('click', resetGame);
+    }
+        
+        // Create floating text animation
+        function createFloatingText(event, text) {
+            const floatText = document.createElement('div');
+            floatText.className = 'float-text';
+            floatText.textContent = text;
+            
+            // Position near the click
+            const rect = kebabButton.getBoundingClientRect();
+            const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 40;
+            const y = rect.top + rect.height / 2;
+            
+            floatText.style.left = `${x}px`;
+            floatText.style.top = `${y}px`;
+            floatText.style.fontSize = '24px';
+            
+            document.body.appendChild(floatText);
+            
+            // Remove after animation
+            setTimeout(() => {
+                floatText.remove();
+            }, 1000);
+        }
+        
+        // Add XP and check for level up
+        function addXP(amount) {
+            gameState.xp += amount;
+            
+            while (gameState.xp >= gameState.xpToNextLevel) {
+                gameState.xp -= gameState.xpToNextLevel;
+                gameState.level++;
+                gameState.xpToNextLevel = Math.floor(gameState.xpToNextLevel * 1.5);
+                
+                // Level up notification and animation
+                showNotification(`🎉 Level Up! You are now level ${gameState.level}!`);
+                levelDisplay.classList.add('level-up');
+                setTimeout(() => levelDisplay.classList.remove('level-up'), 500);
+                
+                // Create level up particles
+                createLevelUpParticles();
+            }
+        }
+        
+        // Create level up particle explosion
+        function createLevelUpParticles() {
+            const colors = ['#FFD700', '#FFA500', '#FF6347', '#00CED1', '#9370DB'];
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'click-particle';
+                particle.textContent = ['⭐', '✨', '🎉', '🌟'][Math.floor(Math.random() * 4)];
+                particle.style.left = `${window.innerWidth / 2 + (Math.random() - 0.5) * 200}px`;
+                particle.style.top = `${200 + (Math.random() - 0.5) * 100}px`;
+                particle.style.color = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 1000);
+            }
+        }
+
+        // Create click particle
+        function createClickParticle(x, y, value) {
+            const particle = document.createElement('div');
+            particle.className = 'click-particle text-orange-500';
+            particle.textContent = `+${value}`;
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            document.body.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 1000);
+        }
+
+        // ============================================
+        // BUY UPGRADE (CATEGORIZED)
+        // ============================================
+        function buyUpgrade(category, key) {
+            const cost = getUpgradeCost(category, key);
+            
+            if (gameState.kebabs >= cost) {
+                gameState.kebabs -= cost;
+                gameState.upgrades[category][key].owned++;
+                
+                // Add XP for purchase
+                addXP(Math.floor(cost / 10));
+                
+                // Shake effect on purchase
+                const upgradeItem = document.querySelector(`[data-category="${category}"][data-key="${key}"]`);
+                if (upgradeItem) {
+                    upgradeItem.classList.add('shake');
+                    setTimeout(() => upgradeItem.classList.remove('shake'), 300);
+                }
+                
+                showNotification(`Purchased ${gameState.upgrades[category][key].name}!`);
+                
+                // Check achievements
+                checkAchievements();
+                
+                updateDisplay();
+            }
+        }
+
+        // Activate boost
+        function activateBoost() {
+            const boostCost = 100;
+            
+            if (gameState.kebabs >= boostCost && !gameState.boostActive) {
+                gameState.kebabs -= boostCost;
+                gameState.boostActive = true;
+                gameState.boostEndTime = Date.now() + 10000;
+                
+                showNotification('⚡ 2x Boost activated for 10 seconds!');
+                
+                updateDisplay();
+            }
+        }
+
+        // ============================================
+        // ACHIEVEMENTS CHECK
+        // ============================================
+        function checkAchievements() {
+            let totalUpgrades = 0;
+            for (const category in gameState.upgrades) {
+                for (const key in gameState.upgrades[category]) {
+                    totalUpgrades += gameState.upgrades[category][key].owned;
+                }
+            }
+            
+            if (gameState.totalClicks >= 1 && !gameState.achievements.firstClick.unlocked) {
+                gameState.achievements.firstClick.unlocked = true;
+                showNotification('🏆 Achievement: First Bite!');
+            }
+            
+            if (gameState.totalKebabsEarned >= 100 && !gameState.achievements.hundredKebabs.unlocked) {
+                gameState.achievements.hundredKebabs.unlocked = true;
+                showNotification('🏆 Achievement: Snack Time!');
+            }
+            
+            if (gameState.totalKebabsEarned >= 1000 && !gameState.achievements.thousandKebabs.unlocked) {
+                gameState.achievements.thousandKebabs.unlocked = true;
+                showNotification('🏆 Achievement: Feast Mode!');
+            }
+            
+            if (gameState.totalKebabsEarned >= 10000 && !gameState.achievements.tenThousandKebabs.unlocked) {
+                gameState.achievements.tenThousandKebabs.unlocked = true;
+                showNotification('🏆 Achievement: Kebab King!');
+            }
+            
+            if (gameState.totalKebabsEarned >= 100000 && !gameState.achievements.hundredThousandKebabs.unlocked) {
+                gameState.achievements.hundredThousandKebabs.unlocked = true;
+                showNotification('🏆 Achievement: Empire Builder!');
+            }
+            
+            if (totalUpgrades >= 1 && !gameState.achievements.firstUpgrade.unlocked) {
+                gameState.achievements.firstUpgrade.unlocked = true;
+                showNotification('🏆 Achievement: Investment!');
+            }
+            
+            if (totalUpgrades >= 10 && !gameState.achievements.tenUpgrades.unlocked) {
+                gameState.achievements.tenUpgrades.unlocked = true;
+                showNotification('🏆 Achievement: Business Owner!');
+            }
+            
+            if (gameState.level >= 5 && !gameState.achievements.level5.unlocked) {
+                gameState.achievements.level5.unlocked = true;
+                showNotification('🏆 Achievement: Rising Star!');
+            }
+            
+            if (gameState.level >= 10 && !gameState.achievements.level10.unlocked) {
+                gameState.achievements.level10.unlocked = true;
+                showNotification('🏆 Achievement: Kebab Master!');
+            }
+            
+            if (gameState.combo >= 10 && !gameState.achievements.combo10.unlocked) {
+                gameState.achievements.combo10.unlocked = true;
+                showNotification('🏆 Achievement: Click Frenzy!');
+            }
+            
+            if (gameState.rating >= 5 && !gameState.achievements.fiveStar.unlocked) {
+                gameState.achievements.fiveStar.unlocked = true;
+                showNotification('🏆 Achievement: Five Star!');
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer') || document.body;
+            const notification = document.createElement('div');
+            
+            let bgColor = 'bg-gray-800';
+            let borderColor = 'border-orange-500';
+            if (type === 'success') {
+                bgColor = 'bg-green-600';
+                borderColor = 'border-green-400';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-600';
+                borderColor = 'border-red-400';
+            }
+            
+            notification.className = `notification fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl z-50 font-bold border-l-4 ${borderColor} transition-all duration-500 transform translate-y-0`;
+            notification.textContent = message;
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // ============================================
+        // SAVE/LOAD SYSTEM
+        // ============================================
+        function getSaveKey() {
+            return gameState.username ? `kebabClickerSave_${gameState.username}` : 'kebabClickerSave';
+        }
+
+        function saveGame() {
+            const saveData = {
+                kebabs: gameState.kebabs,
+                totalClicks: gameState.totalClicks,
+                totalKebabsEarned: gameState.totalKebabsEarned,
+                level: gameState.level,
+                xp: gameState.xp,
+                xpToNextLevel: gameState.xpToNextLevel,
+                maxCombo: gameState.maxCombo,
+                playStartTime: gameState.playStartTime,
+                reputation: gameState.reputation,
+                rating: gameState.rating,
+                username: gameState.username,
+                gameHour: gameState.gameHour,
+                weather: gameState.weather,
+                currentCity: gameState.currentCity,
+                selectedMenuItem: gameState.selectedMenuItem,
+                restaurants: gameState.restaurants,
+                autoSupply: gameState.autoSupply,
+                upgrades: gameState.upgrades,
+                menuItems: gameState.menuItems,
+                cities: gameState.cities,
+                supply: gameState.supply,
+                achievements: gameState.achievements
+            };
+            
+            localStorage.setItem(getSaveKey(), JSON.stringify(saveData));
+            showNotification('💾 Game saved!');
+            if (firebaseEnabled && currentUser) saveToCloud();
+        }
+
+        function loadGame() {
+            const saveData = localStorage.getItem(getSaveKey());
+            
+            if (saveData) {
+                const data = JSON.parse(saveData);
+                gameState.kebabs = data.kebabs || 0;
+                gameState.totalClicks = data.totalClicks || 0;
+                gameState.totalKebabsEarned = data.totalKebabsEarned || 0;
+                gameState.level = data.level || 1;
+                gameState.xp = data.xp || 0;
+                gameState.xpToNextLevel = data.xpToNextLevel || 100;
+                gameState.maxCombo = data.maxCombo || 0;
+                gameState.playStartTime = data.playStartTime || Date.now();
+                gameState.reputation = data.reputation || 50;
+                gameState.rating = data.rating || 3;
+                gameState.username = data.username || null;
+                gameState.gameHour = data.gameHour || 12;
+                gameState.weather = data.weather || 'sunny';
+                gameState.currentCity = data.currentCity || 'istanbul';
+                gameState.selectedMenuItem = data.selectedMenuItem || 'kebab';
+                gameState.restaurants = data.restaurants || [{ city: 'istanbul', level: 1, openedAt: Date.now() }];
+                
+                // Merge auto-supply
+                if (data.autoSupply) {
+                    gameState.autoSupply = { ...gameState.autoSupply, ...data.autoSupply };
+                }
+                
+                // Update auto-supply UI
+                updateAutoSupplyUI();
+                
+                // Merge menu items
+                if (data.menuItems) {
+                    for (const key in data.menuItems) {
+                        if (gameState.menuItems[key]) {
+                            gameState.menuItems[key].unlocked = data.menuItems[key].unlocked;
+                        }
+                    }
+                }
+                
+                // Merge cities
+                if (data.cities) {
+                    for (const key in data.cities) {
+                        if (gameState.cities[key]) {
+                            gameState.cities[key].unlocked = data.cities[key].unlocked;
+                        }
+                    }
+                }
+                
+                // Merge supply
+                if (data.supply) {
+                    for (const key in data.supply) {
+                        if (gameState.supply[key]) {
+                            gameState.supply[key].stock = data.supply[key].stock;
+                        }
+                    }
+                }
+                
+                // Merge upgrades (categorized)
+                if (data.upgrades) {
+                    for (const category in data.upgrades) {
+                        if (gameState.upgrades[category]) {
+                            for (const key in data.upgrades[category]) {
+                                if (gameState.upgrades[category][key]) {
+                                    gameState.upgrades[category][key].owned = data.upgrades[category][key].owned;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Merge achievements
+                for (const key in data.achievements) {
+                    if (gameState.achievements[key]) {
+                        gameState.achievements[key].unlocked = data.achievements[key].unlocked;
+                    }
+                }
+                
+                showNotification('📂 Game loaded!');
+            }
+        }
+
+        // Reset game
+        let resetConfirmTimer;
+        function resetGame() {
+            if (resetButton.textContent.includes('Are you sure?')) {
+                localStorage.removeItem('kebabClickerSave');
+                location.reload();
+            } else {
+                const originalText = resetButton.innerHTML;
+                resetButton.textContent = 'Are you sure?';
+                resetButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                resetButton.classList.add('bg-black', 'hover:bg-gray-800');
+                
+                clearTimeout(resetConfirmTimer);
+                resetConfirmTimer = setTimeout(() => {
+                    resetButton.innerHTML = originalText;
+                    resetButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                    resetButton.classList.remove('bg-black', 'hover:bg-gray-800');
+                }, 3000);
+            }
+        }
+
+        // ============================================
+        // RANDOM EVENTS & SECURITY
+        // ============================================
+        function getSecurityLevel() {
+            let total = 0;
+            if (!gameState.upgrades || !gameState.upgrades.security) return 0;
+            for (const key in gameState.upgrades.security) {
+                const upgrade = gameState.upgrades.security[key];
+                total += upgrade.owned * (upgrade.security || 0);
+            }
+            return total;
+        }
+
+        function triggerThiefEvent() {
+            const security = getSecurityLevel();
+            // Chance to catch: 20% base + security level (capped at 95%)
+            const captureChance = Math.min(95, 20 + security);
+            const roll = Math.random() * 100;
+            
+            if (roll < captureChance) {
+                const reward = Math.floor(100 + Math.random() * 200 + (gameState.level * 30));
+                gameState.kebabs += reward;
+                showNotification(`👮 Thief Captured! You received ${reward} 🥙 bonus!`, 'success');
+                postWorldEvent(`👮 <b>${gameState.username}</b> caught a thief in ${gameState.currentCity}!`);
+                addXP(25);
+            } else {
+                const loss = Math.floor(Math.min(gameState.kebabs * 0.15, 1000));
+                gameState.kebabs -= loss;
+                showNotification(`🥷 Thief Escaped! They stole ${loss} 🥙.`, 'error');
+                postWorldEvent(`🚨 A thief escaped from <b>${gameState.username}</b>'s shop!`);
+                gameState.reputation = Math.max(0, gameState.reputation - 5);
+            }
+            updateDisplay();
+        }
+
+        let lastEventCheck = Date.now();
+        function checkRandomEvents() {
+            const now = Date.now();
+            if (now - lastEventCheck > 60000) { // Every 1 minute
+                lastEventCheck = now;
+                if (Math.random() < 0.2) { // 20% chance
+                    triggerThiefEvent();
+                }
+            }
+        }
+
+        // ============================================
+        // COMMUNITY & PVP LOGIC (FIREBASE ENABLED)
+        // ============================================
+        let currentUser = null;
+
+        // Sync local username if Firebase is off
+        window.loginWithGoogle = function() {
+            if (firebaseEnabled) {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(e => showNotification("Login failed: " + e.message, 'error'));
+                return;
+            }
+            const username = prompt("Enter username:");
+            if (username) {
+                gameState.username = username;
+                updateAuthUI();
+                showNotification(`Welcome back, ${username}! (Local Mode)`, 'success');
+                saveGame();
+            }
+        };
+
+        if (firebaseEnabled) {
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                if (user) {
+                    gameState.uid = user.uid;
+                    // Use Google name if available or not set
+                    if (!gameState.username || gameState.username.startsWith("Player_")) {
+                        gameState.username = user.displayName || "Chef_" + user.uid.substr(0,4);
+                    }
+                    syncCloudData();
+                }
+                updateAuthUI();
+            });
+        }
+
+        async function syncCloudData() {
+            if (!firebaseEnabled || !currentUser) return;
+            
+            try {
+                const docRef = db.collection("players").doc(currentUser.uid);
+                const doc = await docRef.get();
+                
+                if (doc.exists) {
+                    const cloudData = doc.data();
+                    if (cloudData.gameData) {
+                        try {
+                            const data = JSON.parse(cloudData.gameData);
+                            // Full state merge
+                            gameState.kebabs = Math.max(gameState.kebabs, cloudData.kebabs || 0);
+                            gameState.username = cloudData.username || gameState.username;
+                            gameState.level = data.level || gameState.level;
+                            gameState.xp = data.xp || gameState.xp;
+                            gameState.reputation = data.reputation || gameState.reputation;
+                            
+                            // Merge complex objects
+                            if (data.upgrades) gameState.upgrades = data.upgrades;
+                            if (data.restaurants) gameState.restaurants = data.restaurants;
+                            if (data.supply) gameState.supply = data.supply;
+                            
+                            renderUpgrades();
+                            updateDisplay();
+                            showNotification("☁️ Cloud state loaded!", "success");
+                        } catch (e) { console.error("Parse cloud data error", e); }
+                    }
+                } else {
+                    saveToCloud();
+                }
+                updateLeaderboard();
+                listenForAttacks();
+                listenForTrades();
+                listenForChat();
+                listenForWorldFeed();
+                updateOnlineCount();
+            } catch (e) {
+                console.error("Cloud sync failed:", e);
+            }
+        }
+
+        async function saveToCloud() {
+            if (!firebaseEnabled || !currentUser) return;
+            try {
+                // Minimal state for cloud storage
+                const cloudState = {
+                    level: gameState.level,
+                    xp: gameState.xp,
+                    reputation: gameState.reputation,
+                    rating: gameState.rating,
+                    upgrades: gameState.upgrades,
+                    restaurants: gameState.restaurants,
+                    supply: gameState.supply
+                };
+
+                await db.collection("players").doc(currentUser.uid).set({
+                    username: gameState.username,
+                    kebabs: Math.floor(gameState.kebabs),
+                    reputation: gameState.reputation,
+                    gameData: JSON.stringify(cloudState),
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Cloud save failed:", e);
+            }
+        }
+
+        window.updateLeaderboard = async function() {
+            if (!firebaseEnabled) return;
+            const listDiv = document.getElementById('leaderboard-list');
+            if (!listDiv) return;
+            
+            try {
+                const snapshot = await db.collection("players").orderBy("kebabs", "desc").limit(10).get();
+                listDiv.innerHTML = '';
+                let rank = 1;
+                    snapshot.forEach(doc => {
+                        const p = doc.data();
+                        listDiv.innerHTML += `
+                            <div class="flex justify-between p-3 bg-white/60 rounded-xl border border-orange-100 items-center shadow-sm animate-fade-in">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${rank++}</span>
+                                    <span class="font-bold text-sm text-gray-700">${p.username}</span>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()} 🥙</span>
+                                    <div class="flex gap-1.5 mt-1.5">
+                                        ${doc.id !== currentUser?.uid ? `
+                                            <button onclick="sendGiftTo('${doc.id}', '${p.username}')" class="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold hover:bg-blue-100 transition-colors">Gift</button>
+                                            <button onclick="sendPvPThiefTo('${doc.id}', '${p.username}')" class="text-[9px] bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold hover:bg-red-100 transition-colors">Attack</button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+            } catch (e) {
+                listDiv.innerHTML = '<div class="text-xs text-red-500">Failed to load leaderboard</div>';
+            }
+        }
+
+        function listenForAttacks() {
+            if (!firebaseEnabled || !currentUser) return;
+            db.collection("attacks").where("targetId", "==", currentUser.uid).onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const attack = change.doc.data();
+                        handleIncomingAttack(attack, change.doc.id);
+                    }
+                });
+            });
+        }
+
+        function handleIncomingAttack(attack, docId) {
+            const security = getSecurityLevel();
+            const roll = Math.random() * 100;
+            const caught = security > roll;
+            
+            if (caught) {
+                showNotification(`🛡️ CAUGHT! You stopped ${attack.attackerName}'s thief!`, 'success');
+            } else {
+                const loss = Math.floor(gameState.kebabs * 0.1);
+                gameState.kebabs -= loss;
+                showNotification(`🚨 STOLEN! ${attack.attackerName} stole ${loss} kebabs!`, 'error');
+            }
+            db.collection("attacks").doc(docId).delete();
+            updateDisplay();
+            saveToCloud();
+        }
+
+        function listenForTrades() {
+            if (!firebaseEnabled) return;
+            db.collection("trades").where("status", "==", "open").limit(10).onSnapshot(snapshot => {
+                const marketDiv = document.getElementById('trade-market-list');
+                if (!marketDiv) return;
+                
+                marketDiv.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const t = doc.data();
+                    const isMe = t.sellerId === currentUser?.uid;
+                    const priceDisplay = t.askItem === 'kebab' ? `${t.askAmount.toLocaleString()} 🥙` : `${t.askAmount} ${t.askItem}`;
+                    
+                    marketDiv.innerHTML += `
+                        <div class="p-3 bg-white/50 rounded-lg border ${isMe ? 'border-orange-300 bg-orange-50/30' : 'border-blue-100'} flex justify-between items-center animate-fade-in shadow-sm">
+                            <div>
+                                <div class="text-sm font-bold">${isMe ? 'Your' : t.sellerName + "'s"} ${t.sellAmount} ${t.sellItem}</div>
+                                <div class="text-xs text-blue-600 font-black">Asking: ${priceDisplay}</div>
+                            </div>
+                            ${isMe 
+                                ? `<button onclick="cancelTrade('${doc.id}', '${t.sellItem}', ${t.sellAmount})" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-300">Cancel</button>`
+                                : `<button onclick="acceptTrade('${doc.id}')" class="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600">Swap</button>`
+                            }
+                        </div>`;
+                });
+                if (marketDiv.innerHTML === '') {
+                    marketDiv.innerHTML = '<div class="text-xs text-gray-400 italic py-4 text-center">Market is empty</div>';
+                }
+            });
+        }
+
+        window.cancelTrade = async function(tradeId, item, amount) {
+            try {
+                await db.collection("trades").doc(tradeId).update({ status: 'cancelled' });
+                gameState.supply[item].stock += amount;
+                updateDisplay();
+                showNotification("Trade cancelled. Items returned!", "info");
+                saveToCloud();
+            } catch (e) { console.error(e); }
+        };
+
+        window.listenForChat = function() {
+            if (!firebaseEnabled) return;
+            db.collection("messages").orderBy("timestamp", "desc").limit(30).onSnapshot(snapshot => {
+                const chatDiv = document.getElementById('chat-messages');
+                if (!chatDiv) return;
+                
+                chatDiv.innerHTML = '';
+                snapshot.docs.reverse().forEach(doc => {
+                    const m = doc.data();
+                    const isMe = m.uid === currentUser?.uid;
+                    chatDiv.innerHTML += `
+                        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2">
+                            <span class="text-[9px] text-gray-400 px-1 mb-0.5">${m.username}</span>
+                            <div class="${isMe ? 'bg-orange-500 text-white rounded-l-xl rounded-tr-xl' : 'bg-gray-100 text-gray-800 rounded-r-xl rounded-tl-xl'} px-3 py-1.5 shadow-sm max-w-[85%] break-words">
+                                ${m.text}
+                            </div>
+                        </div>`;
+                });
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            });
+        };
+
+        window.handleChatSubmit = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !firebaseEnabled || !currentUser) return;
+            
+            db.collection("messages").add({
+                uid: currentUser.uid,
+                username: gameState.username,
+                text: text,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+        };
+
+        window.listenForWorldFeed = function() {
+            if (!firebaseEnabled) return;
+            db.collection("events").orderBy("timestamp", "desc").limit(15).onSnapshot(snapshot => {
+                const feedDiv = document.getElementById('world-feed');
+                if (!feedDiv) return;
+                feedDiv.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const e = doc.data();
+                    feedDiv.innerHTML += `<div class="p-2 mb-2 bg-white rounded-lg border-l-4 border-orange-400 shadow-sm text-gray-700 animate-slide-in">${e.message}</div>`;
+                });
+            });
+        };
+
+        window.postWorldEvent = function(message) {
+            if (!firebaseEnabled) return;
+            db.collection("events").add({
+                message: message,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        };
+
+        window.updateOnlineCount = function() {
+            if (!firebaseEnabled) return;
+            // Simplified: just show a count of players with recently updated lastSeen
+            const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+            db.collection("players").where("lastSeen", ">", fiveMinsAgo).onSnapshot(snapshot => {
+                const countSpan = document.getElementById('online-count');
+                if (countSpan) countSpan.textContent = snapshot.size + " Online";
+            });
+        };
+
+        window.createTradeOffer = function() {
+            if (!firebaseEnabled || !currentUser) return showNotification("Sign in with Google to trade!", "error");
+            
+            const sellItem = prompt("What do you want to SELL? (meat, bread, or vegetables)").toLowerCase();
+            if (!['meat', 'bread', 'vegetables'].includes(sellItem)) return showNotification("Invalid item!", "error");
+            
+            const sellAmount = parseInt(prompt(`How many ${sellItem} are you selling?`));
+            if (isNaN(sellAmount) || sellAmount <= 0 || gameState.supply[sellItem].stock < sellAmount) return showNotification("Not enough stock!", "error");
+            
+            const askItem = prompt("What do you want IN EXCHANGE? (kebab, meat, bread, or vegetables)").toLowerCase();
+            if (!['kebab', 'meat', 'bread', 'vegetables'].includes(askItem)) return showNotification("Invalid choice!", "error");
+            
+            const askAmount = parseInt(prompt(`How much ${askItem} do you want for it?`));
+            if (isNaN(askAmount) || askAmount < 0) return showNotification("Invalid amount!", "error");
+            
+            gameState.supply[sellItem].stock -= sellAmount;
+            updateDisplay();
+            
+            db.collection("trades").add({
+                sellerId: currentUser.uid,
+                sellerName: gameState.username,
+                sellItem: sellItem,
+                sellAmount: sellAmount,
+                askItem: askItem,
+                askAmount: askAmount,
+                status: 'open',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                showNotification(`Posted: ${sellAmount} ${sellItem} for ${askAmount} ${askItem}`, "success");
+                saveToCloud();
+            });
+        };
+
+        window.acceptTrade = async function(tradeId) {
+            if (!firebaseEnabled || !currentUser) return;
+            
+            const tradeRef = db.collection("trades").doc(tradeId);
+            const trade = await tradeRef.get();
+            
+            if (!trade.exists || trade.data().status !== 'open') {
+                return showNotification("Trade no longer available!", "error");
+            }
+            
+            const t = trade.data();
+            
+            // Check if buyer has enough to pay
+            if (t.askItem === 'kebab') {
+                if (gameState.kebabs < t.askAmount) return showNotification("Need more kebabs!", "error");
+            } else {
+                if (gameState.supply[t.askItem].stock < t.askAmount) return showNotification(`Need more ${t.askItem}!`, "error");
+            }
+            
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const freshTrade = await transaction.get(tradeRef);
+                    if (freshTrade.data().status !== 'open') throw "Trade closed";
+                    transaction.update(tradeRef, { status: 'completed', buyerId: currentUser.uid });
+                });
+                
+                // Deduct payment
+                if (t.askItem === 'kebab') {
+                    gameState.kebabs -= t.askAmount;
+                } else {
+                    gameState.supply[t.askItem].stock -= t.askAmount;
+                }
+                
+                // Receive items
+                gameState.supply[t.sellItem].stock += t.sellAmount;
+                
+                updateDisplay();
+                showNotification(`Trade complete! Received ${t.sellAmount} ${t.sellItem}`, "success");
+                saveToCloud();
+                
+                // Real-time payment to seller
+                const sellerRef = db.collection("players").doc(t.sellerId);
+                if (t.askItem === 'kebab') {
+                    sellerRef.update({ kebabs: firebase.firestore.FieldValue.increment(t.askAmount) });
+                } else {
+                    // For item-to-item, we'll store "pending rewards" or just update their stock directly if simple
+                    // Note: Firestore doesn't have FieldValue.increment for non-numbers, 
+                    // so for simplicity we just update their kebabs or handle rewards on their next sync
+                    const sellerDoc = await sellerRef.get();
+                    if (sellerDoc.exists && sellerDoc.data().gameData) {
+                        const sData = JSON.parse(sellerDoc.data().gameData);
+                        if (sData.supply && sData.supply[t.askItem]) {
+                            sData.supply[t.askItem].stock += t.askAmount;
+                            sellerRef.update({ gameData: JSON.stringify(sData) });
+                        }
+                    }
+                }
+            } catch (e) {
+                showNotification("Transaction failed!", "error");
+            }
+        };
+
+        window.sendPvPThiefTo = function(targetId, targetName) {
+            const cost = 1000;
+            if (gameState.kebabs < cost) return showNotification("Need 1,000 Kebabs to attack!", "error");
+            
+            gameState.kebabs -= cost;
+            if (firebaseEnabled) {
+                db.collection("attacks").add({
+                    attackerId: currentUser.uid,
+                    attackerName: gameState.username,
+                    targetId: targetId,
+                    time: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showNotification(`🥷 Thief sent to ${targetName}!`, 'success');
+            } else {
+                showNotification("Simulated attack sent!");
+            }
+            updateDisplay();
+        };
+
+        window.sendGiftTo = async function(targetId, targetName) {
+            if (!firebaseEnabled || !currentUser) return showNotification("Sign in with Google to send gifts!", "error");
+            if (targetId === currentUser.uid) return showNotification("You cannot gift yourself!", "error");
+            
+            const item = prompt(`What would you like to gift to ${targetName}? (kebab, meat, bread, or vegetables)`).toLowerCase();
+            if (!['kebab', 'meat', 'bread', 'vegetables'].includes(item)) return showNotification("We don't have that in stock!", "error");
+            
+            const amount = parseInt(prompt(`How much ${item} are you gifting?`));
+            if (isNaN(amount) || amount <= 0) return showNotification("Invalid amount!", "error");
+            
+            // Check stock
+            if (item === 'kebab') {
+                if (gameState.kebabs < amount) return showNotification("Not enough kebabs!", "error");
+                gameState.kebabs -= amount;
+            } else {
+                if (gameState.supply[item].stock < amount) return showNotification(`Not enough ${item}!`, "error");
+                gameState.supply[item].stock -= amount;
+            }
+            
+            try {
+                const targetRef = db.collection("players").doc(targetId);
+                if (item === 'kebab') {
+                    await targetRef.update({ kebabs: firebase.firestore.FieldValue.increment(amount) });
+                } else {
+                    const tDoc = await targetRef.get();
+                    if (tDoc.exists && tDoc.data().gameData) {
+                        const tData = JSON.parse(tDoc.data().gameData);
+                        if (tData.supply && tData.supply[item]) {
+                            tData.supply[item].stock += amount;
+                            await targetRef.update({ gameData: JSON.stringify(tData) });
+                        }
+                    }
+                }
+                
+                postWorldEvent(`🎁 <b>${gameState.username}</b> sent a gift of ${amount} ${item} to <b>${targetName}</b>!`);
+                showNotification(`Successfully gifted ${amount} ${item} to ${targetName}!`, 'success');
+                updateDisplay();
+                saveToCloud();
+            } catch (e) {
+                showNotification("Delivery failed!", "error");
+            }
+        };
+
+        window.logout = function() {
+            if (firebaseEnabled) {
+                auth.signOut();
+            }
+            gameState.username = null;
+            updateAuthUI();
+            showNotification('Logged out.');
+            saveGame();
+        };
+
+        function updateAuthUI() {
+            const authStatus = document.getElementById('auth-status');
+            if (authStatus) {
+                if (gameState.username) {
+                    const mode = firebaseEnabled ? "Online" : "Local";
+                    const email = (firebaseEnabled && currentUser?.email) ? ` (${currentUser.email})` : '';
+                    authStatus.innerHTML = `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] mr-2">${mode}</span> <b>${gameState.username}${email}</b> | <button onclick="logout()" class="text-red-500 hover:underline">Logout</button>`;
+                } else {
+                    const btnText = firebaseEnabled ? 'Sign in with Google' : 'Set Name';
+                    const btnFunc = firebaseEnabled ? 'loginWithGoogle()' : 'loginWithGoogle()'; // Use same for consistency
+                    authStatus.innerHTML = `Play locally or <button onclick="${btnFunc}" class="text-orange-500 hover:underline font-bold">${btnText}</button>`;
+                }
+            }
+        }
+
+        window.sendPvPThief = function(type, cost) {
+            if (gameState.kebabs < cost) return showNotification('Not enough kebabs!', 'error');
+            gameState.kebabs -= cost;
+            updateDisplay();
+            showNotification(`🥷 Sending ${type}...`);
+            
+            setTimeout(() => {
+                const targetSecurity = Math.floor(Math.random() * 80); 
+                const roll = Math.random() * 100;
+                if (roll > targetSecurity) {
+                    const stolen = Math.floor(cost * (1.2 + Math.random() * 1.5));
+                    gameState.kebabs += stolen;
+                    showNotification(`💰 Success! Stole ${stolen} 🥙!`, 'success');
+                } else {
+                    showNotification(`👮 Thief caught!`, 'error');
+                }
+                updateDisplay();
+            }, 2000);
+        };
+
+        // ============================================
+        // GAME LOOP
+        // ============================================
+        function gameLoop() {
+            const income = getIncomePerSecond() / 10; // Divide by 10 since we run 10 times per second
+            gameState.kebabs += income;
+            gameState.totalKebabsEarned += income;
+            
+            // Consume supplies
+            consumeSupplies();
+            
+            // Check random events
+            checkRandomEvents();
+            
+            // Update time cycle
+            updateTimeCycle();
+            
+            // Update weather
+            updateWeather();
+            
+            // Try to spawn visitors (rare event)
+            if (Math.random() < 0.01) { // 1% chance per tick
+                trySpawnVisitor();
+            }
+            
+            // Check boost expiration
+            if (gameState.boostActive && Date.now() > gameState.boostEndTime) {
+                gameState.boostActive = false;
+                showNotification('Boost expired!');
+            }
+            
+            // Check visitor expiration
+            if (gameState.currentVisitor && Date.now() > gameState.visitorEndTime) {
+                gameState.currentVisitor = null;
+            }
+            
+            // Check achievements
+            checkAchievements();
+            
+            updateDisplay();
+        }
+
+        // ============================================
+        // MINI-GAMES LOGIC
+        // ============================================
+        let gameCooldowns = { kj: 0, km: 0 };
+        const GAME_COOLDOWN_MS = 300000; // 5 minutes
+        
+        // KebabJack State
+        let kjState = {
+            active: false,
+            bet: 0,
+            deck: [],
+            playerHand: [],
+            dealerHand: [],
+            gameOver: false
+        };
+        
+        function getDeck() {
+            const suits = ['♠', '♥', '♦', '♣'];
+            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            let deck = [];
+            for (let s of suits) {
+                for (let v of values) {
+                    deck.push({ suit: s, value: v });
+                }
+            }
+            // Shuffle
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+        
+        function getCardValue(card) {
+            if (['J', 'Q', 'K'].includes(card.value)) return 10;
+            if (card.value === 'A') return 11;
+            return parseInt(card.value);
+        }
+        
+        function getHandScore(hand) {
+            let score = 0;
+            let aces = 0;
+            for (let card of hand) {
+                if (card.value === 'A') aces += 1;
+                score += getCardValue(card);
+            }
+            while (score > 21 && aces > 0) {
+                score -= 10;
+                aces -= 1;
+            }
+            return score;
+        }
+        
+        function renderCard(card, hidden = false) {
+            const isRed = card.suit === '♥' || card.suit === '♦';
+            const color = isRed ? 'text-red-600' : 'text-gray-900';
+            if (hidden) {
+                return `<div class="w-12 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded border-2 border-white shadow-md flex items-center justify-center text-white card-enter font-bold">?</div>`;
+            }
+            return `<div class="w-12 h-16 bg-white rounded border border-gray-300 shadow-md flex flex-col items-center justify-center ${color} card-enter">
+                <span class="font-bold leading-none">${card.value}</span>
+                <span class="text-xl leading-none">${card.suit}</span>
+            </div>`;
+        }
+        
+        window.startKebabJack = function() {
+            const now = Date.now();
+            if (now < gameCooldowns.kj) {
+                const waitSecs = Math.ceil((gameCooldowns.kj - now) / 1000);
+                const waitMins = Math.floor(waitSecs / 60);
+                const remSecs = waitSecs % 60;
+                showNotification(`Please wait ${waitMins > 0 ? waitMins + 'm ' : ''}${remSecs}s before playing again.`);
+                return;
+            }
+            const betInput = document.getElementById('kj-bet');
+            const betAmount = parseInt(betInput.value);
+            
+            if (isNaN(betAmount) || betAmount < 10) {
+                showNotification('Minimum bet is 10 kebabs.');
+                return;
+            }
+            if (betAmount > gameState.kebabs) {
+                showNotification('Not enough kebabs to place bet.');
+                return;
+            }
+            
+            gameState.kebabs -= betAmount;
+            updateDisplay();
+            
+            kjState = {
+                active: true,
+                bet: betAmount,
+                deck: getDeck(),
+                playerHand: [],
+                dealerHand: [],
+                gameOver: false
+            };
+            
+            // Deal initial cards
+            kjState.playerHand.push(kjState.deck.pop());
+            kjState.dealerHand.push(kjState.deck.pop());
+            kjState.playerHand.push(kjState.deck.pop());
+            kjState.dealerHand.push(kjState.deck.pop());
+            
+            document.getElementById('kj-setup').classList.add('hidden');
+            document.getElementById('kj-game').classList.remove('hidden');
+            document.getElementById('kj-controls').classList.remove('hidden');
+            document.getElementById('kj-result').classList.add('hidden');
+            document.getElementById('kj-reset').classList.add('hidden');
+            
+            updateKjUI();
+            
+            // Check for immediate Blackjack
+            const pScore = getHandScore(kjState.playerHand);
+            if (pScore === 21) {
+                endKebabJack('blackjack');
+            }
+        };
+        
+        function updateKjUI() {
+            const dScore = getHandScore(kjState.dealerHand);
+            const pScore = getHandScore(kjState.playerHand);
+            
+            document.getElementById('kj-player-score').textContent = pScore;
+            
+            const playerHTML = kjState.playerHand.map(c => renderCard(c)).join('');
+            document.getElementById('kj-player-cards').innerHTML = playerHTML;
+            
+            if (kjState.gameOver) {
+                document.getElementById('kj-dealer-score').textContent = dScore;
+                document.getElementById('kj-dealer-cards').innerHTML = kjState.dealerHand.map(c => renderCard(c)).join('');
+            } else {
+                document.getElementById('kj-dealer-score').textContent = getCardValue(kjState.dealerHand[0]) + ' + ?';
+                document.getElementById('kj-dealer-cards').innerHTML = renderCard(kjState.dealerHand[0]) + renderCard(kjState.dealerHand[1], true);
+            }
+        }
+        
+        window.kjHit = function() {
+            if (!kjState.active || kjState.gameOver) return;
+            kjState.playerHand.push(kjState.deck.pop());
+            updateKjUI();
+            
+            if (getHandScore(kjState.playerHand) > 21) {
+                endKebabJack('bust');
+            }
+        };
+        
+        window.kjStand = function() {
+            if (!kjState.active || kjState.gameOver) return;
+            kjState.gameOver = true;
+            
+            // Dealer logic
+            while (getHandScore(kjState.dealerHand) < 17) {
+                kjState.dealerHand.push(kjState.deck.pop());
+            }
+            
+            const pScore = getHandScore(kjState.playerHand);
+            const dScore = getHandScore(kjState.dealerHand);
+            
+            if (dScore > 21) {
+                endKebabJack('dealer_bust');
+            } else if (pScore > dScore) {
+                endKebabJack('win');
+            } else if (pScore < dScore) {
+                endKebabJack('lose');
+            } else {
+                endKebabJack('push');
+            }
+        };
+        
+        function endKebabJack(result) {
+            kjState.gameOver = true;
+            if (result === 'lose' || result === 'bust') {
+                gameCooldowns.kj = Date.now() + GAME_COOLDOWN_MS;
+            } else {
+                gameCooldowns.kj = 0; // No cooldown
+            }
+            updateKjUI();
+            
+            document.getElementById('kj-controls').classList.add('hidden');
+            const resultDiv = document.getElementById('kj-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.className = 'text-center font-bold text-lg p-2 rounded ' + resultDiv.className.replace(/bg-\w+-100/g, '').replace(/text-\w+-800/g, '');
+            
+            let winnings = 0;
+            if (result === 'blackjack') {
+                winnings = kjState.bet * 2.5;
+                resultDiv.textContent = `BLACKJACK! You win ${winnings} 🥙!`;
+                resultDiv.classList.add('bg-green-100', 'text-green-800');
+            } else if (result === 'win' || result === 'dealer_bust') {
+                winnings = kjState.bet * 2;
+                resultDiv.textContent = `You win ${winnings} 🥙!`;
+                resultDiv.classList.add('bg-green-100', 'text-green-800');
+            } else if (result === 'push') {
+                winnings = kjState.bet;
+                resultDiv.textContent = `Push. Returned ${winnings} 🥙.`;
+                resultDiv.classList.add('bg-yellow-100', 'text-yellow-800');
+            } else {
+                resultDiv.textContent = `You bust/lose.`;
+                resultDiv.classList.add('bg-red-100', 'text-red-800');
+            }
+            
+            gameState.kebabs += winnings;
+            updateDisplay();
+            document.getElementById('kj-reset').classList.remove('hidden');
+        }
+        
+        window.resetKebabJack = function() {
+            document.getElementById('kj-setup').classList.remove('hidden');
+            document.getElementById('kj-game').classList.add('hidden');
+        };
+
+        // ============================================
+        // KEBAB MINE LOGIC
+        // ============================================
+        let kmState = {
+            active: false,
+            bet: 0,
+            minesCount: 0,
+            grid: [],
+            revealed: [],
+            safeRevealed: 0,
+            multiplier: 1.0
+        };
+        
+        window.startKebabMine = function() {
+            const now = Date.now();
+            if (now < gameCooldowns.km) {
+                const waitSecs = Math.ceil((gameCooldowns.km - now) / 1000);
+                const waitMins = Math.floor(waitSecs / 60);
+                const remSecs = waitSecs % 60;
+                showNotification(`Please wait ${waitMins > 0 ? waitMins + 'm ' : ''}${remSecs}s before playing again.`);
+                return;
+            }
+            const betInput = document.getElementById('km-bet');
+            const minesInput = document.getElementById('km-mines');
+            const betAmount = parseInt(betInput.value);
+            const minesCount = parseInt(minesInput.value);
+            
+            if (isNaN(betAmount) || betAmount < 10) {
+                showNotification('Minimum bet is 10 kebabs.');
+                return;
+            }
+            if (betAmount > gameState.kebabs) {
+                showNotification('Not enough kebabs to place bet.');
+                return;
+            }
+            if (isNaN(minesCount) || minesCount < 1 || minesCount > 24) {
+                showNotification('Spoiled meat count must be between 1 and 24.');
+                return;
+            }
+            
+            gameState.kebabs -= betAmount;
+            updateDisplay();
+            
+            kmState = {
+                active: true,
+                bet: betAmount,
+                minesCount: minesCount,
+                grid: Array(25).fill('safe'),
+                revealed: Array(25).fill(false),
+                safeRevealed: 0,
+                multiplier: 1.0
+            };
+            
+            // Place mines
+            let placed = 0;
+            while(placed < minesCount) {
+                const idx = Math.floor(Math.random() * 25);
+                if (kmState.grid[idx] === 'safe') {
+                    kmState.grid[idx] = 'mine';
+                    placed++;
+                }
+            }
+            
+            document.getElementById('km-setup').classList.add('hidden');
+            document.getElementById('km-game').classList.remove('hidden');
+            document.getElementById('km-result').classList.add('hidden');
+            document.getElementById('km-reset').classList.add('hidden');
+            document.getElementById('km-cashout').disabled = true;
+            document.getElementById('km-cashout').classList.remove('hidden');
+            
+            renderKmGrid();
+            updateKmUI();
+        };
+        
+        function renderKmGrid() {
+            const gridDiv = document.getElementById('km-grid');
+            gridDiv.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'mine-tile w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center text-2xl shadow-sm border border-orange-300';
+                tile.dataset.index = i;
+                tile.onclick = () => kmClickTile(i);
+                gridDiv.appendChild(tile);
+            }
+        }
+        
+        window.kmClickTile = function(idx) {
+            if (!kmState.active || kmState.revealed[idx]) return;
+            
+            kmState.revealed[idx] = true;
+            const gridDiv = document.getElementById('km-grid');
+            const tile = gridDiv.children[idx];
+            tile.classList.add('revealed');
+            tile.classList.remove('bg-orange-200');
+            tile.classList.add('flip-in');
+            
+            if (kmState.grid[idx] === 'mine') {
+                tile.classList.add('bg-red-500');
+                tile.textContent = '🤢'; // Spoiled meat
+                endKebabMine('bust');
+            } else {
+                tile.classList.add('bg-green-400');
+                tile.textContent = '🥙'; // Fresh kebab
+                kmState.safeRevealed++;
+                
+                // Calculate next multiplier based on remaining safe spots and mines
+                const remainingTiles = 25 - (kmState.safeRevealed - 1);
+                // Simple multiplier scaling factor
+                const stepMultiplier = 1 + (kmState.minesCount / remainingTiles) * 0.95; 
+                kmState.multiplier *= stepMultiplier;
+                
+                updateKmUI();
+                
+                if (kmState.safeRevealed === 25 - kmState.minesCount) {
+                    endKebabMine('clear');
+                }
+            }
+        };
+        
+        function updateKmUI() {
+            document.getElementById('km-multiplier').textContent = kmState.multiplier.toFixed(2) + 'x';
+            document.getElementById('km-payout').textContent = Math.floor(kmState.bet * kmState.multiplier);
+            if (kmState.safeRevealed > 0 && kmState.active) {
+                document.getElementById('km-cashout').disabled = false;
+            }
+        }
+        
+        window.kmCashout = function() {
+            if (!kmState.active || kmState.safeRevealed === 0) return;
+            endKebabMine('cashout');
+        };
+        
+        function endKebabMine(result) {
+            kmState.active = false;
+            if (result === 'bust') {
+                gameCooldowns.km = Date.now() + GAME_COOLDOWN_MS;
+            } else {
+                gameCooldowns.km = 0; // No cooldown
+            }
+            
+            // Reveal all
+            const gridDiv = document.getElementById('km-grid');
+            for (let i = 0; i < 25; i++) {
+                if (!kmState.revealed[i]) {
+                    const tile = gridDiv.children[i];
+                    tile.classList.add('revealed', 'opacity-50');
+                    if (kmState.grid[i] === 'mine') {
+                        tile.textContent = '🤢';
+                        tile.classList.add('bg-red-300');
+                    } else {
+                        tile.textContent = '🥙';
+                        tile.classList.add('bg-green-200');
+                    }
+                }
+            }
+            
+            document.getElementById('km-cashout').classList.add('hidden');
+            const resultDiv = document.getElementById('km-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.className = 'text-center font-bold text-lg p-2 rounded ' + resultDiv.className.replace(/bg-\w+-100/g, '').replace(/text-\w+-800/g, '');
+            
+            if (result === 'bust') {
+                resultDiv.textContent = `You hit spoiled meat! Lost ${kmState.bet} 🥙.`;
+                resultDiv.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                const winnings = Math.floor(kmState.bet * kmState.multiplier);
+                gameState.kebabs += winnings;
+                updateDisplay();
+                resultDiv.textContent = `Cashed out! Won ${winnings} 🥙!`;
+                resultDiv.classList.add('bg-green-100', 'text-green-800');
+            }
+            
+            document.getElementById('km-reset').classList.remove('hidden');
+        }
+        
+        window.resetKebabMine = function() {
+            document.getElementById('km-setup').classList.remove('hidden');
+            document.getElementById('km-game').classList.add('hidden');
+        };
+
+        // Auto-save every 30 seconds
+        function autoSave() {
+            saveGame();
+        }
+
+        // Event listeners are set up in initGame via setupEventListeners()
+
+        // Create floating background kebabs
+        function createFloatingKebabs() {
+            for (let i = 0; i < 15; i++) {
+                const kebab = document.createElement('div');
+                kebab.className = 'floating-kebab';
+                kebab.textContent = '🥙';
+                kebab.style.left = `${Math.random() * 100}vw`;
+                kebab.style.top = `${Math.random() * 100}vh`;
+                kebab.style.animationDelay = `${Math.random() * 6}s`;
+                kebab.style.fontSize = `${1 + Math.random() * 2}rem`;
+                document.body.appendChild(kebab);
+            }
+        }
+        
+        // Initialize
+        function initGame() {
+            console.log('Initializing game...');
+            initDOMElements();
+            console.log('DOM elements:', { upgradesList: !!upgradesList, achievementsList: !!achievementsList });
+            createFloatingKebabs();
+            setupTabNavigation();
+            setupEventListeners();
+            loadGame();
+            console.log('Rendering upgrades and achievements...');
+            renderUpgrades();
+            renderAchievements();
+            updateDisplay();
+            updateAuthUI();
+            console.log('Initialization complete');
+            
+            // Start game loop (10 times per second for smooth updates)
+            setInterval(gameLoop, 100);
+            
+            // Auto-save every 30 seconds
+            setInterval(autoSave, 30000);
+        }
+        
+        // Run initialization when DOM is ready with slight delay to ensure elements are parsed
+        function startGame() {
+            setTimeout(initGame, 100);
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startGame);
+        } else {
+            startGame();
+        }
+    </script>
+</body>
+</html>
