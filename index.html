@@ -876,7 +876,7 @@
             >
               Daily Quests
             </div>
-            <div id="dailyQuestList" class="space-y-2 text-xs"></div>
+            <div id="dailyQuestsListSidebar" class="space-y-2 text-xs"></div>
           </div>
 
           <div class="mt-4 bg-amber-50 rounded-2xl p-4 border border-amber-100">
@@ -1748,7 +1748,6 @@
         // DAILY QUESTS SYSTEM
         dailyQuests: [],
         dailyQuestDayKey: "",
-        questProgress: {},
 
         // STORY/LORE SYSTEM
         story: {
@@ -1759,42 +1758,6 @@
         },
 
         // STAFF HAPPINESS SYSTEM - REMOVED AS UNUSED
-
-        // RESTAURANT DECOR (Visual upgrades)
-        decor: {
-          sign: {
-            owned: 0,
-            max: 5,
-            cost: 500,
-            incomeBonus: 0.02,
-            name: "Neon Sign",
-            icon: "🏪",
-          },
-          tables: {
-            owned: 0,
-            max: 10,
-            cost: 300,
-            incomeBonus: 0.01,
-            name: "Fancy Tables",
-            icon: "🪑",
-          },
-          lights: {
-            owned: 0,
-            max: 5,
-            cost: 800,
-            incomeBonus: 0.03,
-            name: "Chandeliers",
-            icon: "💡",
-          },
-          music: {
-            owned: 0,
-            max: 3,
-            cost: 1200,
-            incomeBonus: 0.05,
-            name: "Live Music",
-            icon: "🎵",
-          },
-        },
 
         // REVIEWS SYSTEM - REMOVED AS UNUSED
 
@@ -2511,7 +2474,7 @@
         incomeRepBreakdown,
         incomeEventBreakdown,
         incomeFinalBreakdown;
-      let dailyQuestList, suggestedActionText, nextMilestoneText;
+      let dailyQuestList, dailyQuestsListSidebar, suggestedActionText, nextMilestoneText;
       let notifLevelSelect, cityContractsPanel, screenShakeToggle;
       let achievementsDirty = true;
       let incomeCache = null;
@@ -2567,6 +2530,7 @@
         incomeEventBreakdown = document.getElementById("incomeEventBreakdown");
         incomeFinalBreakdown = document.getElementById("incomeFinalBreakdown");
         dailyQuestList = document.getElementById("dailyQuestsList");
+        dailyQuestsListSidebar = document.getElementById("dailyQuestsListSidebar");
         suggestedActionText = document.getElementById("suggestedActionText");
         nextMilestoneText = document.getElementById("nextMilestoneText");
       }
@@ -2739,13 +2703,18 @@
       }
 
       function renderDailyQuests() {
-        if (!dailyQuestList) return;
+        const targets = [dailyQuestList, dailyQuestsListSidebar].filter(Boolean);
+        if (targets.length === 0) return;
         if (!gameState.dailyQuests || gameState.dailyQuests.length === 0) {
-          dailyQuestList.innerHTML =
-            '<div class="text-gray-500 font-semibold">No quests right now.</div>';
+          targets.forEach((el) => {
+            el.innerHTML =
+              '<div class="text-gray-500 font-semibold">No quests right now.</div>';
+          });
           return;
         }
-        dailyQuestList.innerHTML = "";
+        targets.forEach((el) => {
+          el.innerHTML = "";
+        });
         gameState.dailyQuests.forEach((quest, idx) => {
           const progress = Math.floor(getQuestProgress(quest));
           const done = progress >= quest.target;
@@ -2765,7 +2734,9 @@
                         }
                     </div>
                 `;
-          dailyQuestList.appendChild(row);
+          targets.forEach((el) => {
+            el.appendChild(row.cloneNode(true));
+          });
         });
       }
 
@@ -3258,6 +3229,7 @@
         const permitMult = getCityPermitMultiplier();
         const cityNetworkMult = 1 + (getUnlockedCityCount() - 1) * 0.05;
         const cuisineBonus = getCityCuisineBonus();
+        const prestigeMult = gameState.prestige.permanentMultipliers.income;
         let finalIncome =
           baseIncome *
           cityMult *
@@ -3266,7 +3238,8 @@
           eventMult *
           cuisineBonus *
           permitMult *
-          cityNetworkMult;
+          cityNetworkMult *
+          prestigeMult;
 
         // Apply Penalty for missing supplies
         if (!hasSupplies) {
@@ -3281,6 +3254,8 @@
           eventMult,
           cuisineBonus,
           permitMult,
+          cityNetworkMult,
+          prestigeMult,
           finalIncome,
         };
       }
@@ -4344,22 +4319,7 @@
 
           // XP gain - increased to make leveling more noticeable
           const xpGain = 5 * gameState.prestige.permanentMultipliers.xp;
-          gameState.xp += xpGain;
-
-          // Level up check
-          if (gameState.xp >= gameState.xpToNextLevel) {
-            gameState.level++;
-            gameState.xp -= gameState.xpToNextLevel;
-            gameState.xpToNextLevel = Math.floor(gameState.xpToNextLevel * 1.5);
-            updatePlayerTitle();
-            showNotification(
-              `🎉 Level up! You are now level ${gameState.level}! (${gameState.playerTitle})`,
-            );
-            if (levelDisplay) {
-              levelDisplay.classList.add("level-up");
-              setTimeout(() => levelDisplay.classList.remove("level-up"), 500);
-            }
-          }
+          addXP(xpGain);
 
           // Combo system
           const now = Date.now();
@@ -4522,11 +4482,14 @@
           gameState.xpToNextLevel = Math.floor(gameState.xpToNextLevel * 1.5);
 
           // Level up notification and animation
+          updatePlayerTitle();
           showNotification(
-            `🎉 Level Up! You are now level ${gameState.level}!`,
+            `🎉 Level Up! You are now level ${gameState.level}! (${gameState.playerTitle})`,
           );
-          levelDisplay.classList.add("level-up");
-          setTimeout(() => levelDisplay.classList.remove("level-up"), 500);
+          if (levelDisplay) {
+            levelDisplay.classList.add("level-up");
+            setTimeout(() => levelDisplay.classList.remove("level-up"), 500);
+          }
 
           // Create level up particles
           createLevelUpParticles();
@@ -8111,10 +8074,13 @@
       }
 
       function unlockChapter(chapterId) {
+        if (gameState.story.unlockedChapters.includes(chapterId)) return;
         gameState.story.unlockedChapters.push(chapterId);
         gameState.story.currentChapter = chapterId;
         const chapter = storyChapters[chapterId];
-        showNotification(`📖 Story Unlocked: ${chapter.title}`, "success");
+        if (chapter) {
+          showNotification(`📖 Story Unlocked: ${chapter.title}`, "success");
+        }
       }
 
       // ============================================
