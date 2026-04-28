@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Kebab Clicker Empire - Global MMO</title>
     <link
       rel="icon"
@@ -312,6 +315,23 @@
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
       }
 
+      .city-card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.95),
+          rgba(255, 247, 237, 0.92)
+        );
+        box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12);
+      }
+
+      .upgrade-item {
+        word-break: break-word;
+      }
+
+      .text-fit-tight {
+        line-height: 1.15;
+      }
+
       @keyframes pulse-red {
         0%,
         100% {
@@ -327,12 +347,57 @@
       .low-stock-pulse {
         animation: pulse-red 1s infinite;
       }
+
+      .no-zoom-input {
+        font-size: 16px;
+      }
+
+      @media (max-width: 1023px) {
+        #notificationContainer {
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+          width: min(92vw, 520px);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: 0.75rem !important;
+        }
+
+        .glass-card {
+          border-radius: 1.25rem !important;
+          padding: 1rem !important;
+        }
+
+        .kebab-button {
+          width: 9rem !important;
+          height: 9rem !important;
+          font-size: 3.25rem !important;
+          border-width: 8px !important;
+        }
+
+        #chat-input {
+          font-size: 16px;
+        }
+
+        #leaderboard-list > div,
+        #trade-market-list > div {
+          padding: 0.75rem !important;
+        }
+      }
     </style>
   </head>
 
   <body
     class="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100"
+    style="touch-action: manipulation"
   >
+    <div
+      id="notificationContainer"
+      class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 pointer-events-none max-w-[92vw] w-[380px]"
+    ></div>
     <div class="container mx-auto px-4 py-8 max-w-7xl">
       <!-- Top Bar: Money + Rating -->
       <header
@@ -398,7 +463,9 @@
       <!-- Main Content Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Left Panel: Upgrades -->
-        <div class="glass-card rounded-3xl p-6 flex flex-col h-full">
+        <div
+          class="glass-card rounded-3xl p-6 flex flex-col h-full order-2 lg:order-1"
+        >
           <h3
             class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"
           >
@@ -411,7 +478,7 @@
         </div>
 
         <div
-          class="glass-card rounded-3xl p-8 text-center flex flex-col justify-center items-center"
+          class="glass-card rounded-3xl p-8 text-center flex flex-col justify-center items-center order-1 lg:order-2"
         >
           <!-- Level & XP -->
           <div class="mb-8 w-full">
@@ -679,10 +746,34 @@
               🔄 Reset
             </button>
           </div>
+          <div
+            class="mt-3 flex items-center justify-center gap-2 text-xs font-bold text-gray-600"
+          >
+            <span>Notifications</span>
+            <select
+              id="notifLevelSelect"
+              class="bg-white border border-gray-200 rounded-lg px-2 py-1"
+            >
+              <option value="low">Low</option>
+              <option value="normal" selected>Normal</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div
+            class="mt-2 flex items-center justify-center gap-2 text-xs font-bold text-gray-600"
+          >
+            <span>Screen Shake</span>
+            <label
+              class="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1"
+            >
+              <input id="screenShakeToggle" type="checkbox" checked />
+              <span>On</span>
+            </label>
+          </div>
         </div>
 
         <!-- Right Panel: Stats -->
-        <div class="glass-card rounded-3xl p-6 flex flex-col">
+        <div class="glass-card rounded-3xl p-6 flex flex-col order-3">
           <h3
             class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"
           >
@@ -755,9 +846,9 @@
               <div id="incomeBaseBreakdown" class="text-right text-gray-800">
                 1.00x
               </div>
-              <div class="text-gray-600">City</div>
+              <div class="text-gray-600">City / Network</div>
               <div id="incomeCityBreakdown" class="text-right text-gray-800">
-                1.00x
+                Current 1.00x • Network 1.00x
               </div>
               <div class="text-gray-600">Reputation</div>
               <div id="incomeRepBreakdown" class="text-right text-gray-800">
@@ -926,6 +1017,7 @@
               Unlock new territories and conquer the international kebab market.
             </p>
             <div id="citiesList" class="grid lg:grid-cols-3 gap-6"></div>
+            <div id="cityContractsPanel" class="mt-8"></div>
           </div>
         </div>
 
@@ -1553,6 +1645,7 @@
         hypeBonus: 1, // Multiplier from minigames
         hypeEndTime: 0,
         currentCity: "istanbul",
+        cityTravelLocked: false,
         currentVisitor: null, // Influencer/visitor
         visitorEndTime: 0,
         username: null,
@@ -1600,12 +1693,36 @@
         minigameWins: 0,
         cityEventsTriggered: 0,
         lastComebackBonusAt: 0,
+        notificationLevel: "normal",
+        sessionGoals: {
+          playStartClicks: 0,
+          playStartEarned: 0,
+          clickGoal: 200,
+          earnGoal: 5000,
+          completed: false,
+        },
+        cityProgression: {
+          permits: 0,
+          contracts: {},
+          weeklyContracts: [],
+          weeklyKey: "",
+        },
+        pvpProtection: {
+          shieldUntil: 0,
+          lastAttackAt: 0,
+          hourlyLossWindowStart: 0,
+          hourlyLossAmount: 0,
+        },
+        visual: {
+          screenShake: true,
+        },
 
         // PRESTIGE SYSTEM
         prestige: {
           count: 0,
           totalPrestigeKebabs: 0,
           prestigePoints: 0,
+          milestonesClaimed: [],
           permanentMultipliers: {
             income: 1,
             click: 1,
@@ -2149,6 +2266,11 @@
             icon: "🌟",
           },
         },
+        tradeMarket: {
+          offers: [],
+          lastRefresh: 0,
+          nextRefreshAt: 0,
+        },
         boostActive: false,
         boostEndTime: 0,
       };
@@ -2390,10 +2512,13 @@
         incomeEventBreakdown,
         incomeFinalBreakdown;
       let dailyQuestList, suggestedActionText, nextMilestoneText;
+      let notifLevelSelect, cityContractsPanel, screenShakeToggle;
       let achievementsDirty = true;
       let incomeCache = null;
       let lastFrameTime = Date.now();
       let recentNotificationMap = new Map();
+      let notificationLastShownAt = 0;
+      let notificationBurstCount = 0;
       let currentChatRoom = "global";
 
       // Audio context for sound effects
@@ -2429,6 +2554,9 @@
         menuList = document.getElementById("menuList");
         supplyList = document.getElementById("supplyList");
         citiesList = document.getElementById("citiesList");
+        cityContractsPanel = document.getElementById("cityContractsPanel");
+        notifLevelSelect = document.getElementById("notifLevelSelect");
+        screenShakeToggle = document.getElementById("screenShakeToggle");
         reputationBar = document.getElementById("reputationBar");
         meatBar = document.getElementById("meatBar");
         breadBar = document.getElementById("breadBar");
@@ -2715,6 +2843,363 @@
         );
       }
 
+      function ensureUpgradeCatalog() {
+        const additions = {
+          staff: {
+            trainer: {
+              owned: 0,
+              baseCost: 2200,
+              income: 14,
+              name: "Staff Trainer",
+              icon: "🧠",
+              category: "staff",
+            },
+          },
+          equipment: {
+            smartGrill: {
+              owned: 0,
+              baseCost: 7500,
+              income: 40,
+              name: "Smart Grill AI",
+              icon: "🤖",
+              category: "equipment",
+            },
+          },
+          business: {
+            foodTruckFleet: {
+              owned: 0,
+              baseCost: 15000,
+              income: 70,
+              name: "Food Truck Fleet",
+              icon: "🚚",
+              category: "business",
+            },
+          },
+          security: {
+            cyberWatch: {
+              owned: 0,
+              baseCost: 4200,
+              security: 55,
+              name: "Cyber Watch",
+              icon: "🛰️",
+              category: "security",
+            },
+          },
+          management: {
+            dataAnalyst: {
+              owned: 0,
+              baseCost: 65000,
+              offlineMult: 0.45,
+              name: "Data Analyst",
+              icon: "📊",
+              category: "management",
+              desc: "+45% Offline Income",
+            },
+          },
+        };
+
+        for (const cat in additions) {
+          if (!gameState.upgrades[cat]) gameState.upgrades[cat] = {};
+          for (const key in additions[cat]) {
+            if (!gameState.upgrades[cat][key]) {
+              gameState.upgrades[cat][key] = additions[cat][key];
+            }
+          }
+        }
+      }
+
+      function ensureAchievementCatalog() {
+        const add = {
+          cityTraveler: {
+            unlocked: false,
+            name: "City Traveler",
+            desc: "Unlock 3 cities",
+            icon: "🧳",
+          },
+          cityMagnate: {
+            unlocked: false,
+            name: "City Magnate",
+            desc: "Reach city level 5 in any city",
+            icon: "🏙️",
+          },
+          permitBoss: {
+            unlocked: false,
+            name: "Permit Boss",
+            desc: "Earn 5 city permits",
+            icon: "📜",
+          },
+          upgradeCollector: {
+            unlocked: false,
+            name: "Upgrade Collector",
+            desc: "Own 30 upgrades",
+            icon: "🧰",
+          },
+          millionaire: {
+            unlocked: false,
+            name: "Millionaire",
+            desc: "Earn 1,000,000 kebabs",
+            icon: "💎",
+          },
+        };
+        for (const key in add) {
+          if (!gameState.achievements[key])
+            gameState.achievements[key] = add[key];
+        }
+      }
+
+      function getUnlockedCityCount() {
+        return Object.values(gameState.cities).filter((c) => c.unlocked).length;
+      }
+
+      function getCityPermitMultiplier() {
+        return 1 + gameState.cityProgression.permits * 0.03;
+      }
+
+      function getCityLevelMultiplier(cityKey = gameState.currentCity) {
+        const city = gameState.cities[cityKey];
+        if (!city) return 1;
+        return 1 + Math.max(0, (city.level || 1) - 1) * 0.08;
+      }
+
+      function getCityCuisineBonus() {
+        const item = gameState.menuItems[gameState.selectedMenuItem];
+        if (!item) return 1;
+        const city = gameState.cities[gameState.currentCity];
+        if (!city) return 1;
+        if (item.city === gameState.currentCity) {
+          return 1 + 0.12 + Math.max(0, (city.level || 1) - 1) * 0.015;
+        }
+        return 1;
+      }
+
+      function ensureCityFields() {
+        for (const key in gameState.cities) {
+          const city = gameState.cities[key];
+          if (!Number.isFinite(city.level)) city.level = 1;
+          if (!Number.isFinite(city.maxLevel)) city.maxLevel = 20;
+          if (!Number.isFinite(city.levelCostBase)) {
+            city.levelCostBase = Math.max(
+              1500,
+              Math.floor((city.cost || 5000) * 0.25),
+            );
+          }
+        }
+      }
+
+      function hardResetCityState() {
+        for (const key in gameState.cities) {
+          const city = gameState.cities[key];
+          city.unlocked = key === "istanbul";
+          city.reputation = 50;
+          city.rating = 3;
+          city.level = 1;
+          city.maxLevel = 20;
+          city.levelCostBase = Math.max(
+            1500,
+            Math.floor((city.cost || 5000) * 0.25),
+          );
+        }
+        gameState.currentCity = "istanbul";
+        gameState.restaurants = [
+          { city: "istanbul", level: 1, openedAt: Date.now() },
+        ];
+      }
+
+      function hardResetMenuUnlocks() {
+        for (const key in gameState.menuItems) {
+          gameState.menuItems[key].unlocked = key === "kebab";
+        }
+        gameState.selectedMenuItem = "kebab";
+      }
+
+      function getCityLevelCost(cityKey) {
+        const city = gameState.cities[cityKey];
+        if (!city) return Infinity;
+        const level = Math.max(1, city.level || 1);
+        const hardness = 1 + getUnlockedCityCount() * 0.08;
+        return Math.floor(
+          city.levelCostBase * Math.pow(1.55, level - 1) * hardness,
+        );
+      }
+
+      window.upgradeCityLevel = function (cityKey) {
+        const city = gameState.cities[cityKey];
+        if (!city || !city.unlocked) return;
+        if ((city.level || 1) >= (city.maxLevel || 20)) {
+          showNotification(`${city.name} is already max level.`, "info");
+          return;
+        }
+        const minRepNeeded = Math.min(
+          95,
+          45 + Math.floor((city.level || 1) * 2.5),
+        );
+        if ((city.reputation || 0) < minRepNeeded) {
+          showNotification(
+            `Need ${minRepNeeded} reputation in ${city.name} before next city level.`,
+            "error",
+          );
+          return;
+        }
+        const cost = getCityLevelCost(cityKey);
+        if (gameState.kebabs < cost) {
+          showNotification("Not enough kebabs for city upgrade.", "error");
+          return;
+        }
+        gameState.kebabs -= cost;
+        city.level = (city.level || 1) + 1;
+        city.reputation = Math.min(100, city.reputation + 2);
+        showNotification(
+          `${city.name} upgraded to Lv.${city.level}! Income boosted.`,
+          "success",
+        );
+        renderCities();
+        updateDisplay();
+      };
+
+      function ensureCityContracts() {
+        if (!Array.isArray(gameState.cityProgression.weeklyContracts)) {
+          gameState.cityProgression.weeklyContracts = [];
+        }
+        const weekKey = new Date().toISOString().slice(0, 10);
+        if (gameState.cityProgression.weeklyKey !== weekKey) {
+          gameState.cityProgression.weeklyKey = weekKey;
+          gameState.cityProgression.weeklyContracts = [];
+          const unlocked = Object.keys(gameState.cities).filter(
+            (k) => gameState.cities[k].unlocked,
+          );
+          unlocked.slice(0, 3).forEach((cityKey) => {
+            gameState.cityProgression.weeklyContracts.push({
+              id: `${weekKey}_${cityKey}`,
+              city: cityKey,
+              type: "income",
+              target: Math.max(
+                30000,
+                Math.floor((gameState.cities[cityKey].cost || 10000) * 0.7),
+              ),
+              start: gameState.totalKebabsEarned,
+              reward: Math.max(
+                3500,
+                Math.floor((gameState.cities[cityKey].cost || 10000) * 0.12),
+              ),
+              completed: false,
+            });
+          });
+        }
+        for (const key in gameState.cities) {
+          const city = gameState.cities[key];
+          if (!city.unlocked) continue;
+          if (!gameState.cityProgression.contracts[key]) {
+            gameState.cityProgression.contracts[key] = {
+              city: key,
+              targetRep: Math.min(
+                95,
+                Math.max(55, Math.floor(city.reputation + 10)),
+              ),
+              reward: Math.max(1500, Math.floor((city.cost || 1000) * 0.08)),
+              completed: false,
+            };
+          }
+        }
+      }
+
+      function checkCityContracts() {
+        ensureCityContracts();
+        for (const key in gameState.cityProgression.contracts) {
+          const contract = gameState.cityProgression.contracts[key];
+          const city = gameState.cities[key];
+          if (!city || !city.unlocked || contract.completed) continue;
+          if (city.reputation >= contract.targetRep) {
+            contract.completed = true;
+            gameState.cityProgression.permits += 1;
+            gameState.kebabs += contract.reward;
+            showNotification(
+              `🏙️ ${city.name} contract completed! +${contract.reward.toLocaleString()} 🥙, Permit +1`,
+              "success",
+            );
+          }
+        }
+        for (const contract of gameState.cityProgression.weeklyContracts) {
+          if (contract.completed) continue;
+          const progress = gameState.totalKebabsEarned - (contract.start || 0);
+          if (progress >= contract.target) {
+            contract.completed = true;
+            gameState.kebabs += contract.reward;
+            showNotification(
+              `📅 Weekly contract complete in ${gameState.cities[contract.city].name}! +${contract.reward.toLocaleString()} 🥙`,
+              "success",
+            );
+          }
+        }
+      }
+
+      function renderCityContracts() {
+        if (!cityContractsPanel) return;
+        ensureCityContracts();
+        const contracts = Object.values(
+          gameState.cityProgression.contracts,
+        ).filter((c) => gameState.cities[c.city]?.unlocked);
+        if (contracts.length === 0) {
+          cityContractsPanel.innerHTML = "";
+          return;
+        }
+
+        cityContractsPanel.innerHTML = `
+          <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div class="text-sm font-black text-indigo-700 uppercase tracking-wider">City Contracts</div>
+              <div class="text-xs font-bold text-indigo-600">Permits: ${gameState.cityProgression.permits} | Global Bonus: x${getCityPermitMultiplier().toFixed(2)}</div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-3">
+              ${contracts
+                .map((contract) => {
+                  const city = gameState.cities[contract.city];
+                  const progress = Math.min(
+                    100,
+                    (city.reputation / contract.targetRep) * 100,
+                  );
+                  return `
+                    <div class="bg-white rounded-xl p-3 border border-indigo-100">
+                      <div class="flex justify-between items-center">
+                        <div class="font-bold text-gray-800">${city.icon} ${city.name}</div>
+                        <div class="text-xs font-black ${contract.completed ? "text-green-600" : "text-indigo-600"}">${contract.completed ? "DONE" : "ACTIVE"}</div>
+                      </div>
+                      <div class="text-xs text-gray-500 mt-1">Reach ${contract.targetRep} reputation</div>
+                      <div class="w-full h-2 bg-indigo-100 rounded-full mt-2 overflow-hidden">
+                        <div class="h-full bg-indigo-500" style="width:${progress}%"></div>
+                      </div>
+                      <div class="text-xs font-semibold text-gray-600 mt-2">Reward: ${contract.reward.toLocaleString()} 🥙 + 1 Permit</div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>
+            <div class="mt-4 border-t border-indigo-200 pt-3">
+              <div class="text-xs font-black text-indigo-700 uppercase tracking-wider mb-2">Weekly Contracts</div>
+              <div class="grid md:grid-cols-3 gap-2">
+                ${gameState.cityProgression.weeklyContracts
+                  .map((wc) => {
+                    const city = gameState.cities[wc.city];
+                    const progress = Math.max(
+                      0,
+                      gameState.totalKebabsEarned - (wc.start || 0),
+                    );
+                    const pct = Math.min(100, (progress / wc.target) * 100);
+                    return `
+                      <div class="bg-white rounded-xl p-2 border border-indigo-100">
+                        <div class="text-xs font-bold text-gray-700">${city.icon} ${city.name}</div>
+                        <div class="text-[10px] text-gray-500">Earn ${wc.target.toLocaleString()} 🥙</div>
+                        <div class="w-full h-1.5 bg-indigo-100 rounded-full mt-1 overflow-hidden"><div class="h-full bg-indigo-500" style="width:${pct}%"></div></div>
+                        <div class="text-[10px] font-semibold mt-1 ${wc.completed ? "text-green-600" : "text-gray-600"}">${wc.completed ? "Completed" : `${Math.floor(progress).toLocaleString()} / ${wc.target.toLocaleString()}`}</div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       // Calculate upgrade cost with scaling (works with category structure)
       function getUpgradeCost(category, key) {
         const upgrade = gameState.upgrades[category][key];
@@ -2767,9 +3252,21 @@
         // Core city formula:
         // Final Income = Base Income × City Multiplier × Reputation Multiplier × Event Multiplier
         const cityMult = getCityMultiplier(gameState.currentCity);
+        const cityLevelMult = getCityLevelMultiplier(gameState.currentCity);
         const repMult = getReputationMultiplier(gameState.currentCity);
         const eventMult = getEventMultiplier();
-        let finalIncome = baseIncome * cityMult * repMult * eventMult;
+        const permitMult = getCityPermitMultiplier();
+        const cityNetworkMult = 1 + (getUnlockedCityCount() - 1) * 0.05;
+        const cuisineBonus = getCityCuisineBonus();
+        let finalIncome =
+          baseIncome *
+          cityMult *
+          cityLevelMult *
+          repMult *
+          eventMult *
+          cuisineBonus *
+          permitMult *
+          cityNetworkMult;
 
         // Apply Penalty for missing supplies
         if (!hasSupplies) {
@@ -2779,8 +3276,11 @@
         return {
           baseIncome,
           cityMult,
+          cityLevelMult,
           repMult,
           eventMult,
+          cuisineBonus,
+          permitMult,
           finalIncome,
         };
       }
@@ -2893,7 +3393,7 @@
         if (incomeBaseBreakdown)
           incomeBaseBreakdown.textContent = `${breakdown.baseIncome.toFixed(2)} /s`;
         if (incomeCityBreakdown)
-          incomeCityBreakdown.textContent = `${breakdown.cityMult.toFixed(2)}x`;
+          incomeCityBreakdown.textContent = `Current ${(breakdown.cityMult * breakdown.cityLevelMult).toFixed(2)}x • Network ${breakdown.cityNetworkMult.toFixed(2)}x`;
         if (incomeRepBreakdown)
           incomeRepBreakdown.textContent = `${breakdown.repMult.toFixed(2)}x`;
         if (incomeEventBreakdown)
@@ -2902,9 +3402,11 @@
           incomeFinalBreakdown.textContent = `${income.toLocaleString()}`;
 
         // Update level and XP
-        levelDisplay.textContent = gameState.level;
-        xpDisplay.textContent = `${Math.floor(gameState.xp)}/${gameState.xpToNextLevel}`;
-        xpBar.style.width = `${(gameState.xp / gameState.xpToNextLevel) * 100}%`;
+        if (levelDisplay) levelDisplay.textContent = gameState.level;
+        if (xpDisplay)
+          xpDisplay.textContent = `${Math.floor(gameState.xp)}/${gameState.xpToNextLevel}`;
+        if (xpBar)
+          xpBar.style.width = `${(gameState.xp / gameState.xpToNextLevel) * 100}%`;
 
         // Update stats
         totalClicksDisplay.textContent = gameState.totalClicks;
@@ -2981,8 +3483,13 @@
             gameState.prestige.permanentMultipliers.click.toFixed(2);
 
         const availablePoints = calculatePrestigePoints();
+        const nextMilestone = [1, 3, 5, 10].find(
+          (m) => m > (gameState.prestige.count || 0),
+        );
         if (prestigePoints)
-          prestigePoints.textContent = `${availablePoints} points available`;
+          prestigePoints.textContent = nextMilestone
+            ? `${availablePoints} points | Next milestone at ${nextMilestone}`
+            : `${availablePoints} points | Max milestones reached`;
         if (prestigeBtn) {
           if (availablePoints > 0) {
             prestigeBtn.disabled = false;
@@ -3222,7 +3729,11 @@
         }
 
         gameState.restaurants.forEach((restaurant, index) => {
-          const city = gameState.cities[restaurant.city];
+          const city =
+            gameState.cities[restaurant.city] || gameState.cities.istanbul;
+          if (!gameState.cities[restaurant.city]) {
+            restaurant.city = "istanbul";
+          }
           const restaurantItem = document.createElement("div");
           restaurantItem.className =
             "bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-200 rounded-xl p-4";
@@ -3230,8 +3741,8 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <div class="font-bold text-gray-800">${city.icon} ${city.name} Restaurant</div>
-                            <div class="text-sm text-gray-600">Level ${restaurant.level}</div>
-                            <div class="text-sm text-gray-600">Income: x${city.multiplier}</div>
+                            <div class="text-sm text-gray-600">City Level ${city.level || 1}</div>
+                            <div class="text-sm text-gray-600">Income: x${(city.multiplier * getCityLevelMultiplier(restaurant.city)).toFixed(2)}</div>
                         </div>
                         <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm" onclick="closeRestaurant(${index})">
                             Close
@@ -3304,8 +3815,29 @@
         if (gameState.kebabs >= city.cost && !city.unlocked) {
           gameState.kebabs -= city.cost;
           city.unlocked = true;
-          // No notification - UI updates immediately
+          gameState.currentCity = key;
+          gameState.cityTravelLocked = true;
+          const unlockReward = Math.max(
+            250,
+            Math.floor((city.cost || 0) * 0.05),
+          );
+          gameState.kebabs += unlockReward;
+          gameState.cityProgression.contracts[key] = {
+            city: key,
+            targetRep: Math.min(
+              95,
+              Math.max(55, Math.floor(city.reputation + 10)),
+            ),
+            reward: Math.max(1500, Math.floor((city.cost || 1000) * 0.08)),
+            completed: false,
+          };
+          showNotification(
+            `🌍 ${city.name} unlocked and you have moved there! Expansion bonus +${unlockReward.toLocaleString()} 🥙`,
+            "success",
+          );
+          openRestaurant(key);
           renderCities();
+          renderCityContracts();
           updateDisplay();
         }
       };
@@ -3313,6 +3845,13 @@
       window.switchCity = function (key) {
         if (!gameState.cities[key] || !gameState.cities[key].unlocked) {
           showNotification("City is not unlocked yet!", "error");
+          return;
+        }
+        if (gameState.cityTravelLocked && key !== gameState.currentCity) {
+          showNotification(
+            "⛔ City travel is locked after expansion. Unlock the next city to move forward.",
+            "error",
+          );
           return;
         }
         gameState.currentCity = key;
@@ -3367,6 +3906,9 @@
                     <div class="text-sm font-semibold ${item.unlocked ? "text-green-600" : "text-orange-600"}">
                         ${item.unlocked ? (isSelected ? "Selected" : "Click to select") : `Cost: ${(item.cost || 0).toLocaleString()} 🥙`}
                     </div>
+                    <div class="text-[10px] mt-1 ${item.city === gameState.currentCity ? "text-purple-600 font-bold" : "text-gray-500"}">
+                        ${item.city === gameState.currentCity ? "Local Specialty Bonus Active" : `Origin: ${getCityProfile(item.city).style}`}
+                    </div>
                 `;
 
           if (item.unlocked) {
@@ -3400,6 +3942,7 @@
       // Render cities tab
       function renderCities() {
         if (!citiesList) return;
+        ensureCityFields();
         citiesList.innerHTML = "";
         for (const key in gameState.cities) {
           const city = gameState.cities[key];
@@ -3411,9 +3954,23 @@
             (r) => r.city === key,
           );
           const riskMode = getCityRiskMode(key);
+          const cityLevel = city.level || 1;
+          const cityLevelCost = getCityLevelCost(key);
+          const canLevel = city.unlocked && cityLevel < (city.maxLevel || 20);
 
           const cityCard = document.createElement("div");
-          cityCard.className = `city-card bg-white border-2 rounded-xl p-4 transition-all duration-300 ${city.unlocked ? "border-orange-200" : "opacity-70 grayscale"}`;
+          cityCard.className = `city-card border-2 rounded-2xl p-4 transition-all duration-300 ${city.unlocked ? "border-orange-200" : "opacity-70 grayscale"}`;
+          const travelLocked = gameState.cityTravelLocked && !isCurrent;
+          const moveLabel = isCurrent
+            ? "Currently Here"
+            : travelLocked
+              ? "Travel Locked"
+              : "Move Here";
+          const moveClass = isCurrent
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : travelLocked
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200";
           cityCard.innerHTML = `
                     <div class="flex items-center gap-3 mb-3">
                         <span class="text-4xl">${city.icon}</span>
@@ -3436,6 +3993,10 @@
                             <div class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Visitors</div>
                             <div class="text-sm font-black text-blue-600">${city.customerBonus > 0 ? "+" : ""}${Math.round(city.customerBonus * 100)}%</div>
                         </div>
+                        <div class="bg-gray-50 p-2 rounded-lg text-center col-span-2">
+                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">City Level</div>
+                            <div class="text-sm font-black text-purple-600">Lv.${cityLevel} (${getCityLevelMultiplier(key).toFixed(2)}x income)</div>
+                        </div>
                     </div>
 
                     ${
@@ -3450,8 +4011,8 @@
                                 <div class="bg-orange-400 h-full transition-all duration-500" style="width: ${city.reputation}%"></div>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="switchCity('${key}')" class="flex-1 ${isCurrent ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200"} font-bold py-2 rounded-lg transition-all text-xs" ${isCurrent ? "disabled" : ""}>
-                                    ${isCurrent ? "Currently Here" : "Move Here"}
+                                <button onclick="switchCity('${key}')" class="flex-1 ${moveClass} font-bold py-2 rounded-lg transition-all text-xs" ${isCurrent || travelLocked ? "disabled" : ""}>
+                                    ${moveLabel}
                                 </button>
                                 ${
                                   !hasRestaurant
@@ -3461,6 +4022,9 @@
                             </div>
                             <button onclick="cycleCityRiskMode('${key}')" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg font-bold transition-all text-xs">
                                 Risk Mode: ${riskMode.toUpperCase()}
+                            </button>
+                            <button onclick="upgradeCityLevel('${key}')" class="w-full ${canLevel ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-gray-200 text-gray-500 cursor-not-allowed"} py-2 rounded-lg font-bold transition-all text-xs" ${!canLevel || gameState.kebabs < cityLevelCost ? "disabled" : ""}>
+                                ${canLevel ? `Upgrade City (${cityLevelCost.toLocaleString()} 🥙)` : "City Level Maxed"}
                             </button>
                         </div>
                     `
@@ -3478,6 +4042,7 @@
 
           citiesList.appendChild(cityCard);
         }
+        renderCityContracts();
       }
 
       // Render supply tab
@@ -3563,7 +4128,8 @@
 
         if (!gameState.upgrades) {
           console.error("gameState.upgrades is undefined!");
-          upgradesList.innerHTML = '<div class="text-red-500">Error: Upgrades not loaded</div>';
+          upgradesList.innerHTML =
+            '<div class="text-red-500">Error: Upgrades not loaded</div>';
           return;
         }
 
@@ -3571,6 +4137,8 @@
 
         // Render each category
         for (const category in gameState.upgrades) {
+          const keys = Object.keys(gameState.upgrades[category] || {});
+          if (keys.length === 0) continue;
           console.log("Rendering category:", category);
           // Add category header
           const categoryHeader = document.createElement("div");
@@ -3582,6 +4150,10 @@
           // Render upgrades in this category
           for (const key in gameState.upgrades[category]) {
             const upgrade = gameState.upgrades[category][key];
+            if (!upgrade) continue;
+            if (!Number.isFinite(upgrade.owned)) upgrade.owned = 0;
+            if (!upgrade.name) upgrade.name = key;
+            if (!upgrade.icon) upgrade.icon = "🛠️";
             const cost = getUpgradeCost(category, key);
             const canAfford = gameState.kebabs >= cost;
             upgradeCount++;
@@ -3592,11 +4164,11 @@
             upgradeItem.dataset.key = key;
             upgradeItem.innerHTML = `
                         <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold text-lg text-gray-800">${upgrade.icon} ${upgrade.name}</span>
-                            <span class="bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm">${cost.toLocaleString()} 🥙</span>
+                            <span class="font-bold text-base md:text-lg text-gray-800 text-fit-tight pr-2">${upgrade.icon} ${upgrade.name}</span>
+                            <span class="bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs md:text-sm whitespace-nowrap">${cost.toLocaleString()} 🥙</span>
                         </div>
                         ${upgrade.desc ? `<div class="text-xs text-gray-500 italic mb-2">${upgrade.desc}</div>` : ""}
-                        <div class="flex justify-between text-gray-600 text-sm">
+                        <div class="flex justify-between text-gray-600 text-xs md:text-sm">
                             <span>${upgrade.income ? "+" + upgrade.income + "/sec" : upgrade.security ? "+" + upgrade.security + " Security" : upgrade.offlineMult ? `+${(upgrade.offlineMult * 100).toFixed(0)}% Offline` : ""}</span>
                             <span class="font-semibold text-orange-600">Owned: ${upgrade.owned}</span>
                         </div>
@@ -3612,7 +4184,8 @@
 
         console.log(`Rendered ${upgradeCount} upgrades total`);
         if (upgradeCount === 0) {
-          upgradesList.innerHTML = '<div class="text-gray-500">No upgrades available</div>';
+          upgradesList.innerHTML =
+            '<div class="text-gray-500">No upgrades available</div>';
         }
       }
 
@@ -3693,7 +4266,7 @@
         const boostCost = 100;
 
         boostButton.disabled =
-          !gameState.kebabs >= boostCost && !gameState.boostActive;
+          gameState.kebabs < boostCost || gameState.boostActive;
 
         if (gameState.boostActive) {
           const remaining = Math.ceil(
@@ -3769,8 +4342,8 @@
           gameState.totalClicks++;
           gameState.totalKebabsEarned += clickValue;
 
-          // XP gain
-          const xpGain = 1 * gameState.prestige.permanentMultipliers.xp;
+          // XP gain - increased to make leveling more noticeable
+          const xpGain = 5 * gameState.prestige.permanentMultipliers.xp;
           gameState.xp += xpGain;
 
           // Level up check
@@ -3782,8 +4355,10 @@
             showNotification(
               `🎉 Level up! You are now level ${gameState.level}! (${gameState.playerTitle})`,
             );
-            levelDisplay.classList.add("level-up");
-            setTimeout(() => levelDisplay.classList.remove("level-up"), 500);
+            if (levelDisplay) {
+              levelDisplay.classList.add("level-up");
+              setTimeout(() => levelDisplay.classList.remove("level-up"), 500);
+            }
           }
 
           // Combo system
@@ -3837,7 +4412,13 @@
             comboDisplay.classList.add("hidden");
           }
 
-          // Button animation
+          // Button animation - force retrigger by removing and re-adding
+          kebabButton.classList.remove("clicked");
+          void kebabButton.offsetWidth; // Trigger reflow to force animation restart
+          kebabButton.classList.add("clicked");
+          setTimeout(() => kebabButton.classList.remove("clicked"), 200);
+
+          // Also add shake for screen effect
           kebabButton.classList.add("shake");
           setTimeout(() => kebabButton.classList.remove("shake"), 300);
 
@@ -3858,6 +4439,40 @@
 
         if (boostButton) boostButton.addEventListener("click", activateBoost);
         if (resetButton) resetButton.addEventListener("click", resetGame);
+        if (saveButton) saveButton.addEventListener("click", () => saveGame());
+        if (notifLevelSelect) {
+          notifLevelSelect.value = gameState.notificationLevel || "normal";
+          notifLevelSelect.addEventListener("change", (e) => {
+            gameState.notificationLevel = e.target.value || "normal";
+            showNotification(
+              `Notification level set to ${gameState.notificationLevel.toUpperCase()}`,
+              "info",
+            );
+          });
+        }
+        if (screenShakeToggle) {
+          screenShakeToggle.checked = !!gameState.visual.screenShake;
+          screenShakeToggle.addEventListener("change", (e) => {
+            gameState.visual.screenShake = !!e.target.checked;
+            showNotification(
+              `Screen shake ${gameState.visual.screenShake ? "enabled" : "disabled"}.`,
+              "info",
+            );
+          });
+        }
+
+        let lastTouchEnd = 0;
+        document.addEventListener(
+          "touchend",
+          (event) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+              event.preventDefault();
+            }
+            lastTouchEnd = now;
+          },
+          { passive: false },
+        );
       }
 
       // Create floating text animation
@@ -4000,6 +4615,18 @@
       // ACHIEVEMENTS CHECK
       // ============================================
       function checkAchievements() {
+        const ensureAchievement = (key) => {
+          if (!gameState.achievements[key]) {
+            gameState.achievements[key] = {
+              unlocked: false,
+              name: key,
+              desc: "",
+              icon: "🏆",
+            };
+          }
+          return gameState.achievements[key];
+        };
+
         let unlockedAny = false;
         let totalUpgrades = 0;
         for (const category in gameState.upgrades) {
@@ -4010,92 +4637,130 @@
 
         if (
           gameState.totalClicks >= 1 &&
-          !gameState.achievements.firstClick.unlocked
+          !ensureAchievement("firstClick").unlocked
         ) {
-          gameState.achievements.firstClick.unlocked = true;
+          ensureAchievement("firstClick").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: First Bite!");
         }
 
         if (
           gameState.totalKebabsEarned >= 100 &&
-          !gameState.achievements.hundredKebabs.unlocked
+          !ensureAchievement("hundredKebabs").unlocked
         ) {
-          gameState.achievements.hundredKebabs.unlocked = true;
+          ensureAchievement("hundredKebabs").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Snack Time!");
         }
 
         if (
           gameState.totalKebabsEarned >= 1000 &&
-          !gameState.achievements.thousandKebabs.unlocked
+          !ensureAchievement("thousandKebabs").unlocked
         ) {
-          gameState.achievements.thousandKebabs.unlocked = true;
+          ensureAchievement("thousandKebabs").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Feast Mode!");
         }
 
         if (
           gameState.totalKebabsEarned >= 10000 &&
-          !gameState.achievements.tenThousandKebabs.unlocked
+          !ensureAchievement("tenThousandKebabs").unlocked
         ) {
-          gameState.achievements.tenThousandKebabs.unlocked = true;
+          ensureAchievement("tenThousandKebabs").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Kebab King!");
         }
 
         if (
           gameState.totalKebabsEarned >= 100000 &&
-          !gameState.achievements.hundredThousandKebabs.unlocked
+          !ensureAchievement("hundredThousandKebabs").unlocked
         ) {
-          gameState.achievements.hundredThousandKebabs.unlocked = true;
+          ensureAchievement("hundredThousandKebabs").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Empire Builder!");
         }
 
-        if (
-          totalUpgrades >= 1 &&
-          !gameState.achievements.firstUpgrade.unlocked
-        ) {
-          gameState.achievements.firstUpgrade.unlocked = true;
+        if (totalUpgrades >= 1 && !ensureAchievement("firstUpgrade").unlocked) {
+          ensureAchievement("firstUpgrade").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Investment!");
         }
 
-        if (
-          totalUpgrades >= 10 &&
-          !gameState.achievements.tenUpgrades.unlocked
-        ) {
-          gameState.achievements.tenUpgrades.unlocked = true;
+        if (totalUpgrades >= 10 && !ensureAchievement("tenUpgrades").unlocked) {
+          ensureAchievement("tenUpgrades").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Business Owner!");
         }
 
-        if (gameState.level >= 5 && !gameState.achievements.level5.unlocked) {
-          gameState.achievements.level5.unlocked = true;
+        if (gameState.level >= 5 && !ensureAchievement("level5").unlocked) {
+          ensureAchievement("level5").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Rising Star!");
         }
 
-        if (gameState.level >= 10 && !gameState.achievements.level10.unlocked) {
-          gameState.achievements.level10.unlocked = true;
+        if (gameState.level >= 10 && !ensureAchievement("level10").unlocked) {
+          ensureAchievement("level10").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Kebab Master!");
         }
 
-        if (gameState.combo >= 10 && !gameState.achievements.combo10.unlocked) {
-          gameState.achievements.combo10.unlocked = true;
+        if (gameState.combo >= 10 && !ensureAchievement("combo10").unlocked) {
+          ensureAchievement("combo10").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Click Frenzy!");
         }
 
         if (
           gameState.cities[gameState.currentCity].rating >= 5 &&
-          !gameState.achievements.fiveStar.unlocked
+          !ensureAchievement("fiveStar").unlocked
         ) {
-          gameState.achievements.fiveStar.unlocked = true;
+          ensureAchievement("fiveStar").unlocked = true;
           unlockedAny = true;
           showNotification("🏆 Achievement: Five Star!");
+        }
+
+        const unlockedCities = Object.values(gameState.cities).filter(
+          (c) => c.unlocked,
+        ).length;
+        if (
+          unlockedCities >= 3 &&
+          !ensureAchievement("cityTraveler").unlocked
+        ) {
+          ensureAchievement("cityTraveler").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: City Traveler!");
+        }
+        const hasLevel5City = Object.values(gameState.cities).some(
+          (c) => (c.level || 1) >= 5,
+        );
+        if (hasLevel5City && !ensureAchievement("cityMagnate").unlocked) {
+          ensureAchievement("cityMagnate").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: City Magnate!");
+        }
+        if (
+          gameState.cityProgression.permits >= 5 &&
+          !ensureAchievement("permitBoss").unlocked
+        ) {
+          ensureAchievement("permitBoss").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Permit Boss!");
+        }
+        if (
+          totalUpgrades >= 30 &&
+          !ensureAchievement("upgradeCollector").unlocked
+        ) {
+          ensureAchievement("upgradeCollector").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Upgrade Collector!");
+        }
+        if (
+          gameState.totalKebabsEarned >= 1000000 &&
+          !ensureAchievement("millionaire").unlocked
+        ) {
+          ensureAchievement("millionaire").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Millionaire!");
         }
         if (unlockedAny) achievementsDirty = true;
       }
@@ -4110,9 +4775,32 @@
       // Show notification
       function showNotification(message, type = "info") {
         const now = Date.now();
+        const level = gameState.notificationLevel || "normal";
+        if (level === "low" && type === "info") return;
+        if (
+          level === "low" &&
+          type === "success" &&
+          !message.includes("Achievement") &&
+          !message.includes("contract completed")
+        ) {
+          return;
+        }
         const key = `${type}:${message}`;
         const lastShown = recentNotificationMap.get(key) || 0;
-        if (now - lastShown < 1200) return;
+        const dedupeScale = level === "high" ? 0.7 : level === "low" ? 1.4 : 1;
+        const dedupeWindow =
+          (type === "error" ? 5000 : type === "success" ? 6500 : 9000) *
+          dedupeScale;
+        if (now - lastShown < dedupeWindow) return;
+
+        if (now - notificationLastShownAt < 1100) {
+          notificationBurstCount += 1;
+        } else {
+          notificationBurstCount = 1;
+        }
+        notificationLastShownAt = now;
+        if (notificationBurstCount > 3) return;
+
         recentNotificationMap.set(key, now);
         const container =
           document.getElementById("notificationContainer") || document.body;
@@ -4128,25 +4816,20 @@
           borderColor = "border-red-400";
         }
 
-        // Calculate stacking offset
-        const activeNotifications = document.querySelectorAll(".notification");
-        const offset = activeNotifications.length * 80 + 16;
-
-        notification.className = `notification fixed right-4 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl z-50 font-bold border-l-4 ${borderColor} transition-all duration-500 transform translate-y-0`;
-        notification.style.top = `${offset}px`;
+        notification.className = `notification ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl font-bold border-l-4 ${borderColor} transition-all duration-500 transform translate-y-0 pointer-events-auto`;
         notification.textContent = message;
         container.appendChild(notification);
+
+        const allNotifications = container.querySelectorAll(".notification");
+        if (allNotifications.length > 2) {
+          allNotifications[0].remove();
+        }
 
         setTimeout(() => {
           notification.style.opacity = "0";
           notification.style.transform = "translateX(20px)";
           setTimeout(() => {
             notification.remove();
-            // Re-calculate positions for remaining notifications
-            const remaining = document.querySelectorAll(".notification");
-            remaining.forEach((n, i) => {
-              n.style.top = `${i * 80 + 16}px`;
-            });
           }, 500);
         }, 3000);
       }
@@ -4230,6 +4913,12 @@
           minigameWins: gameState.minigameWins,
           cityEventsTriggered: gameState.cityEventsTriggered,
           lastComebackBonusAt: gameState.lastComebackBonusAt,
+          prestige: gameState.prestige,
+          notificationLevel: gameState.notificationLevel,
+          sessionGoals: gameState.sessionGoals,
+          cityProgression: gameState.cityProgression,
+          pvpProtection: gameState.pvpProtection,
+          visual: gameState.visual,
 
           // Time-based progression fields
           lastSaveTime: Date.now(),
@@ -4311,23 +5000,41 @@
         if (migrated.cities) {
           for (const key in migrated.cities) {
             if (gameState.cities[key]) {
+              const mergedCity = migrated.cities[key] || {};
               gameState.cities[key].unlocked =
-                !!gameState.cities[key].unlocked ||
-                !!migrated.cities[key].unlocked;
+                !!gameState.cities[key].unlocked || !!mergedCity.unlocked;
               gameState.cities[key].reputation = clamp(
                 Math.max(
                   gameState.cities[key].reputation,
-                  migrated.cities[key].reputation || 0,
+                  mergedCity.reputation || 0,
                 ),
                 0,
                 100,
                 gameState.cities[key].reputation,
               );
               gameState.cities[key].rating = clamp(
-                migrated.cities[key].rating,
+                mergedCity.rating,
                 1,
                 5,
                 gameState.cities[key].rating,
+              );
+              gameState.cities[key].level = clamp(
+                mergedCity.level,
+                1,
+                500,
+                gameState.cities[key].level || 1,
+              );
+              gameState.cities[key].maxLevel = clamp(
+                mergedCity.maxLevel,
+                1,
+                1000,
+                gameState.cities[key].maxLevel || 20,
+              );
+              gameState.cities[key].levelCostBase = clamp(
+                mergedCity.levelCostBase,
+                100,
+                1e12,
+                gameState.cities[key].levelCostBase || 1500,
               );
             }
           }
@@ -4383,6 +5090,52 @@
           gameState.lastComebackBonusAt,
           clamp(migrated.lastComebackBonusAt, 0, Date.now(), 0),
         );
+        if (migrated.notificationLevel) {
+          gameState.notificationLevel = migrated.notificationLevel;
+        }
+        if (migrated.sessionGoals) {
+          gameState.sessionGoals = {
+            ...gameState.sessionGoals,
+            ...migrated.sessionGoals,
+          };
+        }
+        if (migrated.cityProgression) {
+          gameState.cityProgression = {
+            ...gameState.cityProgression,
+            ...migrated.cityProgression,
+            contracts: {
+              ...(gameState.cityProgression.contracts || {}),
+              ...(migrated.cityProgression.contracts || {}),
+            },
+          };
+        }
+        if (migrated.pvpProtection) {
+          gameState.pvpProtection = {
+            ...gameState.pvpProtection,
+            ...migrated.pvpProtection,
+          };
+        }
+        if (migrated.visual) {
+          gameState.visual = {
+            ...gameState.visual,
+            ...migrated.visual,
+          };
+        }
+        if (migrated.prestige) {
+          gameState.prestige = {
+            ...gameState.prestige,
+            ...migrated.prestige,
+            permanentMultipliers: {
+              ...gameState.prestige.permanentMultipliers,
+              ...((migrated.prestige &&
+                migrated.prestige.permanentMultipliers) ||
+                {}),
+            },
+          };
+          if (!Array.isArray(gameState.prestige.milestonesClaimed)) {
+            gameState.prestige.milestonesClaimed = [];
+          }
+        }
         if (
           migrated.currentCity &&
           gameState.cities[migrated.currentCity]?.unlocked
@@ -4440,6 +5193,12 @@
           minigameWins: gameState.minigameWins,
           cityEventsTriggered: gameState.cityEventsTriggered,
           lastComebackBonusAt: gameState.lastComebackBonusAt,
+          prestige: gameState.prestige,
+          notificationLevel: gameState.notificationLevel,
+          sessionGoals: gameState.sessionGoals,
+          cityProgression: gameState.cityProgression,
+          pvpProtection: gameState.pvpProtection,
+          visual: gameState.visual,
 
           // Time-based progression fields
           lastSaveTime: Date.now(),
@@ -4547,6 +5306,43 @@
               Date.now(),
               0,
             );
+            gameState.notificationLevel =
+              data.notificationLevel || gameState.notificationLevel || "normal";
+            gameState.sessionGoals = {
+              ...gameState.sessionGoals,
+              ...(data.sessionGoals || {}),
+            };
+            gameState.cityProgression = {
+              ...gameState.cityProgression,
+              ...(data.cityProgression || {}),
+              contracts: {
+                ...(gameState.cityProgression.contracts || {}),
+                ...((data.cityProgression && data.cityProgression.contracts) ||
+                  {}),
+              },
+            };
+            gameState.pvpProtection = {
+              ...gameState.pvpProtection,
+              ...(data.pvpProtection || {}),
+            };
+            gameState.visual = {
+              ...gameState.visual,
+              ...(data.visual || {}),
+            };
+            if (data.prestige) {
+              gameState.prestige = {
+                ...gameState.prestige,
+                ...data.prestige,
+                permanentMultipliers: {
+                  ...gameState.prestige.permanentMultipliers,
+                  ...((data.prestige && data.prestige.permanentMultipliers) ||
+                    {}),
+                },
+              };
+              if (!Array.isArray(gameState.prestige.milestonesClaimed)) {
+                gameState.prestige.milestonesClaimed = [];
+              }
+            }
             gameState.cityEventState.multiplier = clamp(
               gameState.cityEventState.multiplier,
               0.1,
@@ -4589,18 +5385,37 @@
             if (data.cities) {
               for (const key in data.cities) {
                 if (gameState.cities[key]) {
-                  gameState.cities[key].unlocked = data.cities[key].unlocked;
+                  const savedCity = data.cities[key] || {};
+                  gameState.cities[key].unlocked = !!savedCity.unlocked;
                   gameState.cities[key].reputation = clamp(
-                    data.cities[key].reputation,
+                    savedCity.reputation,
                     0,
                     100,
                     50,
                   );
                   gameState.cities[key].rating = clamp(
-                    data.cities[key].rating,
+                    savedCity.rating,
                     1,
                     5,
                     3,
+                  );
+                  gameState.cities[key].level = clamp(
+                    savedCity.level,
+                    1,
+                    500,
+                    gameState.cities[key].level || 1,
+                  );
+                  gameState.cities[key].maxLevel = clamp(
+                    savedCity.maxLevel,
+                    1,
+                    1000,
+                    gameState.cities[key].maxLevel || 20,
+                  );
+                  gameState.cities[key].levelCostBase = clamp(
+                    savedCity.levelCostBase,
+                    100,
+                    1e12,
+                    gameState.cities[key].levelCostBase || 1500,
                   );
                 }
               }
@@ -4637,38 +5452,154 @@
             }
 
             // Ensure upgrades structure is intact
-            if (!gameState.upgrades || Object.keys(gameState.upgrades).length === 0) {
-              console.error("gameState.upgrades is empty after load, reinitializing");
+            if (
+              !gameState.upgrades ||
+              Object.keys(gameState.upgrades).length === 0
+            ) {
+              console.error(
+                "gameState.upgrades is empty after load, reinitializing",
+              );
               // Create a fresh copy of the initial upgrades structure
               const freshUpgrades = {
                 staff: {
-                  chef: { owned: 0, baseCost: 25, income: 1.0, name: "Hire a Chef", icon: "👨‍🍳", category: "staff" },
-                  waiter: { owned: 0, baseCost: 75, income: 1.5, name: "Hire a Waiter", icon: "🧑", category: "staff" },
-                  manager: { owned: 0, baseCost: 400, income: 4, name: "Hire a Manager", icon: "👔", category: "staff" }
+                  chef: {
+                    owned: 0,
+                    baseCost: 25,
+                    income: 1.0,
+                    name: "Hire a Chef",
+                    icon: "👨‍🍳",
+                    category: "staff",
+                  },
+                  waiter: {
+                    owned: 0,
+                    baseCost: 75,
+                    income: 1.5,
+                    name: "Hire a Waiter",
+                    icon: "🧑",
+                    category: "staff",
+                  },
+                  manager: {
+                    owned: 0,
+                    baseCost: 400,
+                    income: 4,
+                    name: "Hire a Manager",
+                    icon: "👔",
+                    category: "staff",
+                  },
                 },
                 equipment: {
-                  grill: { owned: 0, baseCost: 150, income: 2, name: "Buy Grill Machine", icon: "🍳", category: "equipment" },
-                  oven: { owned: 0, baseCost: 600, income: 6, name: "Buy Oven", icon: "🥘", category: "equipment" },
-                  freezer: { owned: 0, baseCost: 1800, income: 12, name: "Buy Freezer", icon: "❄️", category: "equipment" }
+                  grill: {
+                    owned: 0,
+                    baseCost: 150,
+                    income: 2,
+                    name: "Buy Grill Machine",
+                    icon: "🍳",
+                    category: "equipment",
+                  },
+                  oven: {
+                    owned: 0,
+                    baseCost: 600,
+                    income: 6,
+                    name: "Buy Oven",
+                    icon: "🥘",
+                    category: "equipment",
+                  },
+                  freezer: {
+                    owned: 0,
+                    baseCost: 1800,
+                    income: 12,
+                    name: "Buy Freezer",
+                    icon: "❄️",
+                    category: "equipment",
+                  },
                 },
                 business: {
-                  marketing: { owned: 0, baseCost: 250, income: 1.2, name: "Marketing Campaign", icon: "📢", category: "business" },
-                  delivery: { owned: 0, baseCost: 1200, income: 5, name: "Start Delivery", icon: "🚗", category: "business" },
-                  franchise: { owned: 0, baseCost: 8000, income: 20, name: "Franchise", icon: "🌍", category: "business" }
+                  marketing: {
+                    owned: 0,
+                    baseCost: 250,
+                    income: 1.2,
+                    name: "Marketing Campaign",
+                    icon: "📢",
+                    category: "business",
+                  },
+                  delivery: {
+                    owned: 0,
+                    baseCost: 1200,
+                    income: 5,
+                    name: "Start Delivery",
+                    icon: "🚗",
+                    category: "business",
+                  },
+                  franchise: {
+                    owned: 0,
+                    baseCost: 8000,
+                    income: 20,
+                    name: "Franchise",
+                    icon: "🌍",
+                    category: "business",
+                  },
                 },
                 security: {
-                  camera: { owned: 0, baseCost: 150, security: 5, name: "CCTV Cameras", icon: "📷", category: "security" },
-                  alarm: { owned: 0, baseCost: 400, security: 12, name: "Alarm System", icon: "🚨", category: "security" },
-                  guard: { owned: 0, baseCost: 1200, security: 30, name: "Security Guard", icon: "💂", category: "security" }
+                  camera: {
+                    owned: 0,
+                    baseCost: 150,
+                    security: 5,
+                    name: "CCTV Cameras",
+                    icon: "📷",
+                    category: "security",
+                  },
+                  alarm: {
+                    owned: 0,
+                    baseCost: 400,
+                    security: 12,
+                    name: "Alarm System",
+                    icon: "🚨",
+                    category: "security",
+                  },
+                  guard: {
+                    owned: 0,
+                    baseCost: 1200,
+                    security: 30,
+                    name: "Security Guard",
+                    icon: "💂",
+                    category: "security",
+                  },
                 },
                 management: {
-                  nightShift: { owned: 0, baseCost: 1000, offlineMult: 0.1, name: "Night Shift", icon: "🌙", category: "management", desc: "+10% Offline Income" },
-                  storeManager: { owned: 0, baseCost: 5000, offlineMult: 0.2, name: "Store Manager", icon: "👔", category: "management", desc: "+20% Offline Income" },
-                  regionalDirector: { owned: 0, baseCost: 25000, offlineMult: 0.3, name: "Regional Director", icon: "📈", category: "management", desc: "+30% Offline Income" }
-                }
+                  nightShift: {
+                    owned: 0,
+                    baseCost: 1000,
+                    offlineMult: 0.1,
+                    name: "Night Shift",
+                    icon: "🌙",
+                    category: "management",
+                    desc: "+10% Offline Income",
+                  },
+                  storeManager: {
+                    owned: 0,
+                    baseCost: 5000,
+                    offlineMult: 0.2,
+                    name: "Store Manager",
+                    icon: "👔",
+                    category: "management",
+                    desc: "+20% Offline Income",
+                  },
+                  regionalDirector: {
+                    owned: 0,
+                    baseCost: 25000,
+                    offlineMult: 0.3,
+                    name: "Regional Director",
+                    icon: "📈",
+                    category: "management",
+                    desc: "+30% Offline Income",
+                  },
+                },
               };
               gameState.upgrades = freshUpgrades;
             }
+            ensureCityFields();
+            ensureUpgradeCatalog();
+            ensureAchievementCatalog();
 
             // Merge achievements
             if (data.achievements) {
@@ -4769,8 +5700,8 @@
           }
 
           // Clear all localStorage save keys
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('kebabClickerSave')) {
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("kebabClickerSave")) {
               localStorage.removeItem(key);
             }
           });
@@ -4806,39 +5737,152 @@
             supply: {
               meat: { stock: 100, price: 5, maxStock: 500 },
               bread: { stock: 100, price: 2, maxStock: 500 },
-              vegetables: { stock: 100, price: 3, maxStock: 500 }
+              vegetables: { stock: 100, price: 3, maxStock: 500 },
             },
             upgrades: {
               staff: {
-                chef: { owned: 0, baseCost: 25, income: 1.0, name: "Hire a Chef", icon: "👨‍🍳", category: "staff" },
-                waiter: { owned: 0, baseCost: 75, income: 1.5, name: "Hire a Waiter", icon: "🧑", category: "staff" },
-                manager: { owned: 0, baseCost: 400, income: 4, name: "Hire a Manager", icon: "👔", category: "staff" }
+                chef: {
+                  owned: 0,
+                  baseCost: 25,
+                  income: 1.0,
+                  name: "Hire a Chef",
+                  icon: "👨‍🍳",
+                  category: "staff",
+                },
+                waiter: {
+                  owned: 0,
+                  baseCost: 75,
+                  income: 1.5,
+                  name: "Hire a Waiter",
+                  icon: "🧑",
+                  category: "staff",
+                },
+                manager: {
+                  owned: 0,
+                  baseCost: 400,
+                  income: 4,
+                  name: "Hire a Manager",
+                  icon: "👔",
+                  category: "staff",
+                },
               },
               equipment: {
-                grill: { owned: 0, baseCost: 150, income: 2, name: "Buy Grill Machine", icon: "🍳", category: "equipment" },
-                oven: { owned: 0, baseCost: 600, income: 6, name: "Buy Oven", icon: "🥘", category: "equipment" },
-                freezer: { owned: 0, baseCost: 1800, income: 12, name: "Buy Freezer", icon: "❄️", category: "equipment" }
+                grill: {
+                  owned: 0,
+                  baseCost: 150,
+                  income: 2,
+                  name: "Buy Grill Machine",
+                  icon: "🍳",
+                  category: "equipment",
+                },
+                oven: {
+                  owned: 0,
+                  baseCost: 600,
+                  income: 6,
+                  name: "Buy Oven",
+                  icon: "🥘",
+                  category: "equipment",
+                },
+                freezer: {
+                  owned: 0,
+                  baseCost: 1800,
+                  income: 12,
+                  name: "Buy Freezer",
+                  icon: "❄️",
+                  category: "equipment",
+                },
               },
               business: {
-                marketing: { owned: 0, baseCost: 250, income: 1.2, name: "Marketing Campaign", icon: "📢", category: "business" },
-                delivery: { owned: 0, baseCost: 1200, income: 5, name: "Start Delivery", icon: "🚗", category: "business" },
-                franchise: { owned: 0, baseCost: 8000, income: 20, name: "Franchise", icon: "🌍", category: "business" }
+                marketing: {
+                  owned: 0,
+                  baseCost: 250,
+                  income: 1.2,
+                  name: "Marketing Campaign",
+                  icon: "📢",
+                  category: "business",
+                },
+                delivery: {
+                  owned: 0,
+                  baseCost: 1200,
+                  income: 5,
+                  name: "Start Delivery",
+                  icon: "🚗",
+                  category: "business",
+                },
+                franchise: {
+                  owned: 0,
+                  baseCost: 8000,
+                  income: 20,
+                  name: "Franchise",
+                  icon: "🌍",
+                  category: "business",
+                },
               },
               security: {
-                camera: { owned: 0, baseCost: 150, security: 5, name: "CCTV Cameras", icon: "📷", category: "security" },
-                alarm: { owned: 0, baseCost: 400, security: 12, name: "Alarm System", icon: "🚨", category: "security" },
-                guard: { owned: 0, baseCost: 1200, security: 30, name: "Security Guard", icon: "💂", category: "security" }
+                camera: {
+                  owned: 0,
+                  baseCost: 150,
+                  security: 5,
+                  name: "CCTV Cameras",
+                  icon: "📷",
+                  category: "security",
+                },
+                alarm: {
+                  owned: 0,
+                  baseCost: 400,
+                  security: 12,
+                  name: "Alarm System",
+                  icon: "🚨",
+                  category: "security",
+                },
+                guard: {
+                  owned: 0,
+                  baseCost: 1200,
+                  security: 30,
+                  name: "Security Guard",
+                  icon: "💂",
+                  category: "security",
+                },
               },
               management: {
-                nightShift: { owned: 0, baseCost: 1000, offlineMult: 0.1, name: "Night Shift", icon: "🌙", category: "management", desc: "+10% Offline Income" },
-                storeManager: { owned: 0, baseCost: 5000, offlineMult: 0.2, name: "Store Manager", icon: "👔", category: "management", desc: "+20% Offline Income" },
-                regionalDirector: { owned: 0, baseCost: 25000, offlineMult: 0.3, name: "Regional Director", icon: "📈", category: "management", desc: "+30% Offline Income" }
-              }
+                nightShift: {
+                  owned: 0,
+                  baseCost: 1000,
+                  offlineMult: 0.1,
+                  name: "Night Shift",
+                  icon: "🌙",
+                  category: "management",
+                  desc: "+10% Offline Income",
+                },
+                storeManager: {
+                  owned: 0,
+                  baseCost: 5000,
+                  offlineMult: 0.2,
+                  name: "Store Manager",
+                  icon: "👔",
+                  category: "management",
+                  desc: "+20% Offline Income",
+                },
+                regionalDirector: {
+                  owned: 0,
+                  baseCost: 25000,
+                  offlineMult: 0.3,
+                  name: "Regional Director",
+                  icon: "📈",
+                  category: "management",
+                  desc: "+30% Offline Income",
+                },
+              },
             },
             achievements: JSON.parse(JSON.stringify(gameState.achievements)),
             visitors: JSON.parse(JSON.stringify(gameState.visitors)),
             cityRiskModes: {},
-            cityEventState: { name: null, multiplier: 1, endsAt: 0, type: null },
+            cityEventState: {
+              name: null,
+              multiplier: 1,
+              endsAt: 0,
+              type: null,
+            },
             eventTypeCooldowns: {},
             nextCityEventAt: Date.now() + 60000,
             dailyQuests: [],
@@ -4852,30 +5896,83 @@
               count: 0,
               totalPrestigeKebabs: 0,
               prestigePoints: 0,
-              permanentMultipliers: { income: 1, click: 1, xp: 1 }
+              milestonesClaimed: [],
+              permanentMultipliers: { income: 1, click: 1, xp: 1 },
             },
             criticalClickChance: 0.05,
             comboMilestonesReached: [],
-            supplyRush: { active: false, discount: 0.5, endsAt: 0, nextRushAt: Date.now() + 300000 },
+            supplyRush: {
+              active: false,
+              discount: 0.5,
+              endsAt: 0,
+              nextRushAt: Date.now() + 300000,
+            },
             story: {
               unlockedChapters: ["intro"],
               currentChapter: "intro",
               totalChapters: 10,
-              loreDiscovered: []
+              loreDiscovered: [],
             },
             staffHappiness: { chef: 100, waiter: 100, manager: 100 },
             reviews: [],
             averageRating: 3.0,
             marketingCampaigns: {
-              localAd: { active: false, cost: 500, multiplier: 1.5, duration: 300, endsAt: 0 },
-              socialMedia: { active: false, cost: 2000, multiplier: 2, duration: 600, endsAt: 0 },
-              tvCommercial: { active: false, cost: 10000, multiplier: 3, duration: 1800, endsAt: 0 }
+              localAd: {
+                active: false,
+                cost: 500,
+                multiplier: 1.5,
+                duration: 300,
+                endsAt: 0,
+              },
+              socialMedia: {
+                active: false,
+                cost: 2000,
+                multiplier: 2,
+                duration: 600,
+                endsAt: 0,
+              },
+              tvCommercial: {
+                active: false,
+                cost: 10000,
+                multiplier: 3,
+                duration: 1800,
+                endsAt: 0,
+              },
             },
-            unlockedUpgradeTiers: []
+            unlockedUpgradeTiers: ["basic"],
+            tradeMarket: { offers: [], lastRefresh: 0, nextRefreshAt: 0 },
+            notificationLevel: "normal",
+            sessionGoals: {
+              playStartClicks: 0,
+              playStartEarned: 0,
+              clickGoal: 200,
+              earnGoal: 5000,
+              completed: false,
+            },
+            cityProgression: {
+              permits: 0,
+              contracts: {},
+              weeklyContracts: [],
+              weeklyKey: "",
+            },
+            pvpProtection: {
+              shieldUntil: 0,
+              lastAttackAt: 0,
+              hourlyLossWindowStart: 0,
+              hourlyLossAmount: 0,
+            },
+            visual: {
+              screenShake: true,
+            },
           };
 
           // Apply the reset
           Object.assign(gameState, initialGameState);
+          hardResetCityState();
+          hardResetMenuUnlocks();
+          ensureCityFields();
+          ensureUpgradeCatalog();
+          ensureAchievementCatalog();
 
           // Re-render everything
           renderUpgrades();
@@ -4883,6 +5980,8 @@
           renderRestaurants();
           renderCities();
           renderMenu();
+          refreshTradeMarket(true);
+          renderTradeMarket();
           updateDisplay();
           achievementsDirty = true;
           renderAchievements();
@@ -5250,9 +6349,52 @@
       }
 
       window.updateLeaderboard = async function () {
-        if (!firebaseEnabled) return;
         const listDiv = document.getElementById("leaderboard-list");
         if (!listDiv) return;
+
+        if (!firebaseEnabled) {
+          const localPlayers = [
+            {
+              id: "local-rival-1",
+              username: "DonerKing",
+              kebabs: Math.floor(gameState.totalKebabsEarned * 1.25 + 1200),
+            },
+            {
+              id: "local-rival-2",
+              username: "WrapWizard",
+              kebabs: Math.floor(gameState.totalKebabsEarned * 1.05 + 600),
+            },
+            {
+              id: "local-rival-3",
+              username: "GrillNinja",
+              kebabs: Math.floor(gameState.totalKebabsEarned * 0.9 + 300),
+            },
+            {
+              id: "local-you",
+              username: gameState.username || "You",
+              kebabs: Math.floor(gameState.kebabs),
+            },
+          ].sort((a, b) => b.kebabs - a.kebabs);
+
+          listDiv.innerHTML = "";
+          localPlayers.forEach((p, index) => {
+            listDiv.innerHTML += `
+              <div class="flex justify-between p-3 bg-white/60 rounded-xl border border-orange-100 items-center shadow-sm animate-fade-in">
+                <div class="flex items-center gap-3">
+                  <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${index + 1}</span>
+                  <span class="font-bold text-sm text-gray-700">${p.username}</span>
+                </div>
+                <div class="flex flex-col items-end">
+                  <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()}</span>
+                  <div class="flex gap-1.5 mt-1.5">
+                    ${p.id !== "local-you" ? `<button onclick="openSocialModal('${p.id}', '${p.username}')" class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold transition-all">Interact</button>` : ""}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          return;
+        }
 
         try {
           const snapshot = await db
@@ -5274,7 +6416,8 @@
                                     <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()} </span>
                                     <div class="flex gap-1.5 mt-1.5">
                                         ${
-                                          doc.id !== currentUser?.uid && p.username
+                                          doc.id !== currentUser?.uid &&
+                                          p.username
                                             ? `
                                             <button onclick="openSocialModal('${doc.id}', '${(p.username || "Unknown").replace(/'/g, "\\'")}')"
                                                 class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold transition-all">Interact</button>
@@ -5292,18 +6435,25 @@
       };
 
       // Prestige function - called from UI button
+      function getPrestigeRequirement() {
+        const baseRequirement = 40000;
+        const nextLevel = (gameState.prestige.count || 0) + 1;
+        return baseRequirement * nextLevel;
+      }
+
       window.prestige = function () {
         const points = calculatePrestigePoints();
         if (points <= 0) {
+          const required = getPrestigeRequirement();
           showNotification(
-            "Need at least 1,000 total kebabs earned to prestige!",
+            `Need at least ${required.toLocaleString()} total kebabs earned to prestige!`,
             "error",
           );
           return;
         }
         if (
           !confirm(
-            `Prestige now for ${points} points?\n\nYou will restart with permanent bonuses:\n+${(points * 0.1).toFixed(1)}% Income Multiplier\n+${(points * 0.05).toFixed(1)}% Click Multiplier\n+${(points * 0.08).toFixed(1)}% XP Multiplier\n\nYour progress will be reset but permanent upgrades stay!`,
+            `Prestige now for ${points} points?\n\nYou will restart from scratch (cities, upgrades, menu unlocks) and keep only prestige power:\n+${(points * 0.1).toFixed(1)}% Income Multiplier\n+${(points * 0.05).toFixed(1)}% Click Multiplier\n+${(points * 0.08).toFixed(1)}% XP Multiplier`,
           )
         ) {
           return;
@@ -5315,6 +6465,7 @@
         gameState.prestige.permanentMultipliers.income += points * 0.001;
         gameState.prestige.permanentMultipliers.click += points * 0.0005;
         gameState.prestige.permanentMultipliers.xp += points * 0.0008;
+        applyPrestigeMilestones();
 
         // Reset game but keep prestige data
         resetGameForPrestige();
@@ -5328,11 +6479,8 @@
       };
 
       function resetGameForPrestige() {
-        // Keep prestige data, cities, unlocked menu items
+        // Keep only prestige meta, reset the world state
         const prestigeData = gameState.prestige;
-        const unlockedCities = gameState.cities;
-        const unlockedMenu = gameState.menuItems;
-        const story = gameState.story;
 
         // Reset core progress
         gameState.kebabs = 0;
@@ -5479,17 +6627,27 @@
           },
         };
         gameState.achievements = {};
-        gameState.restaurants = [
-          { city: "istanbul", level: 1, openedAt: Date.now() },
-        ];
-        gameState.currentCity = "istanbul";
-        gameState.selectedMenuItem = "kebab";
+        hardResetCityState();
+        hardResetMenuUnlocks();
+        gameState.cityProgression = {
+          permits: 0,
+          contracts: {},
+          weeklyContracts: [],
+          weeklyKey: "",
+        };
+        gameState.sessionGoals = {
+          playStartClicks: 0,
+          playStartEarned: 0,
+          clickGoal: 200,
+          earnGoal: 5000,
+          completed: false,
+        };
 
         // Restore prestige data
         gameState.prestige = prestigeData;
-        gameState.cities = unlockedCities;
-        gameState.menuItems = unlockedMenu;
-        gameState.story = story;
+        ensureCityFields();
+        ensureUpgradeCatalog();
+        ensureAchievementCatalog();
 
         renderUpgrades();
         renderAchievements();
@@ -5542,7 +6700,9 @@
       // SUPPLY RUSH EVENTS
       // ============================================
       function getSupplyUnitPrice(supplyItem) {
-        const basePrice = Number.isFinite(supplyItem?.price) ? supplyItem.price : 0;
+        const basePrice = Number.isFinite(supplyItem?.price)
+          ? supplyItem.price
+          : 0;
         if (!gameState.supplyRush.active) return basePrice;
 
         const discount = Number.isFinite(gameState.supplyRush.discount)
@@ -5677,6 +6837,7 @@
       }
 
       function screenShake(duration = 300) {
+        if (!gameState.visual?.screenShake) return;
         const body = document.body;
         body.animate(
           [
@@ -5781,10 +6942,32 @@
         /* Firebase implementation */
       }
       function listenForTrades() {
-        /* Firebase implementation */
+        refreshTradeMarket(true);
+        renderTradeMarket();
       }
       function listenForChat() {
-        /* Firebase implementation */
+        const chatContainer = document.getElementById("chat-messages");
+        if (!chatContainer) return;
+
+        const roomKey =
+          currentChatRoom === "city"
+            ? `city_${gameState.currentCity}`
+            : "global";
+        const messages = localChatMessagesByRoom[roomKey] || [];
+
+        chatContainer.innerHTML = "";
+        if (messages.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "text-center text-gray-400 py-20 font-bold italic";
+          empty.textContent =
+            currentChatRoom === "city"
+              ? `No messages yet in ${getCityProfile(gameState.currentCity).name}. Start the conversation!`
+              : "No global messages yet. Say hi to everyone!";
+          chatContainer.appendChild(empty);
+          return;
+        }
+
+        messages.forEach((message) => addChatMessage(message));
       }
       function listenForWorldFeed() {
         /* Firebase implementation */
@@ -5796,27 +6979,262 @@
         /* Firebase implementation */
       }
       function openSocialModal(id, name) {
-        /* Firebase implementation */
+        const modal = document.getElementById("social-modal");
+        const targetName = document.getElementById("modal-target-name");
+        const sub = document.getElementById("modal-sub-options");
+        if (!modal || !targetName || !sub) return;
+
+        selectedTargetPlayer = { id, name: name || "Unknown Player" };
+        targetName.textContent = selectedTargetPlayer.name;
+        sub.classList.add("hidden");
+        sub.innerHTML = "";
+        modal.classList.remove("hidden");
       }
       function postWorldEvent(message) {
         /* Firebase implementation */
       }
 
+      function getTradeResourceIcon(resource) {
+        if (resource === "meat") return "🥩";
+        if (resource === "bread") return "🍞";
+        if (resource === "vegetables") return "🥬";
+        return "🥙";
+      }
+
+      function buildRandomTradeOffer() {
+        const resources = ["meat", "bread", "vegetables"];
+        const resource =
+          resources[Math.floor(Math.random() * resources.length)];
+        const amount = Math.floor(Math.random() * 26) + 10;
+        const buyPrice = Math.floor(
+          gameState.supply[resource].price *
+            amount *
+            (0.75 + Math.random() * 0.4),
+        );
+        const sellPrice = Math.floor(
+          gameState.supply[resource].price *
+            amount *
+            (1.05 + Math.random() * 0.6),
+        );
+        const buyMode = Math.random() < 0.5;
+        return {
+          id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          type: buyMode ? "buySupply" : "sellSupply",
+          resource,
+          amount,
+          price: buyMode ? Math.max(1, buyPrice) : Math.max(1, sellPrice),
+          icon: getTradeResourceIcon(resource),
+          expiresAt: Date.now() + 120000,
+        };
+      }
+
+      function refreshTradeMarket(force = false) {
+        const now = Date.now();
+        if (
+          !force &&
+          gameState.tradeMarket.nextRefreshAt &&
+          now < gameState.tradeMarket.nextRefreshAt
+        ) {
+          return;
+        }
+
+        gameState.tradeMarket.offers = Array.from({ length: 4 }, () =>
+          buildRandomTradeOffer(),
+        );
+        gameState.tradeMarket.lastRefresh = now;
+        gameState.tradeMarket.nextRefreshAt = now + 45000;
+      }
+
+      function renderTradeMarket() {
+        const list = document.getElementById("trade-market-list");
+        if (!list) return;
+
+        const now = Date.now();
+        gameState.tradeMarket.offers = gameState.tradeMarket.offers.filter(
+          (offer) => offer.expiresAt > now,
+        );
+
+        if (gameState.tradeMarket.offers.length === 0) {
+          refreshTradeMarket(true);
+        }
+
+        if (gameState.tradeMarket.offers.length === 0) {
+          list.innerHTML = `<div class="text-white/70 italic py-8 text-center font-bold">No active deals right now.</div>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        gameState.tradeMarket.offers.forEach((offer) => {
+          const canExecute =
+            offer.type === "buySupply"
+              ? gameState.kebabs >= offer.price
+              : gameState.supply[offer.resource].stock >= offer.amount;
+          const actionText = offer.type === "buySupply" ? "BUY" : "SELL";
+          const desc =
+            offer.type === "buySupply"
+              ? `Get ${offer.amount} ${offer.resource} for ${offer.price} 🥙`
+              : `Sell ${offer.amount} ${offer.resource} for ${offer.price} 🥙`;
+
+          const row = document.createElement("div");
+          row.className = "bg-white/15 border border-white/20 rounded-2xl p-4";
+          row.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="font-black text-lg">${offer.icon} ${actionText} DEAL</div>
+                <div class="text-sm text-blue-100 font-semibold">${desc}</div>
+              </div>
+              <button class="px-4 py-2 rounded-xl font-black text-sm transition-all ${canExecute ? "bg-white text-blue-700 hover:bg-blue-50" : "bg-white/30 text-white/70 cursor-not-allowed"}" ${canExecute ? "" : "disabled"}>EXECUTE</button>
+            </div>
+          `;
+
+          const button = row.querySelector("button");
+          if (button && canExecute) {
+            button.addEventListener("click", () => executeTradeOffer(offer.id));
+          }
+          list.appendChild(row);
+        });
+      }
+
+      function executeTradeOffer(id) {
+        const index = gameState.tradeMarket.offers.findIndex(
+          (o) => o.id === id,
+        );
+        if (index === -1) return;
+        const offer = gameState.tradeMarket.offers[index];
+
+        if (offer.type === "buySupply") {
+          if (gameState.kebabs < offer.price) {
+            showNotification("Not enough kebabs for this trade!", "error");
+            return;
+          }
+          gameState.kebabs -= offer.price;
+          gameState.supply[offer.resource].stock = Math.min(
+            gameState.supply[offer.resource].maxStock,
+            gameState.supply[offer.resource].stock + offer.amount,
+          );
+          showNotification(
+            `Trade complete: +${offer.amount} ${offer.resource} ${offer.icon}`,
+            "success",
+          );
+        } else {
+          if (gameState.supply[offer.resource].stock < offer.amount) {
+            showNotification("Not enough stock to complete trade!", "error");
+            return;
+          }
+          gameState.supply[offer.resource].stock -= offer.amount;
+          gameState.kebabs += offer.price;
+          showNotification(
+            `Sold ${offer.amount} ${offer.resource} for ${offer.price} 🥙`,
+            "success",
+          );
+        }
+
+        gameState.tradeMarket.offers.splice(index, 1);
+        renderTradeMarket();
+        updateDisplay();
+      }
+
       function calculatePrestigePoints() {
-        return Math.floor(Math.sqrt(gameState.totalKebabsEarned / 1000));
+        const required = getPrestigeRequirement();
+        if (gameState.totalKebabsEarned < required) return 0;
+
+        const base = Math.floor(
+          Math.sqrt(gameState.totalKebabsEarned / 2500) -
+            (gameState.prestige.count || 0) * 1.2,
+        );
+        const levelBonus = Math.floor(gameState.level / 4);
+        const cityBonus = getUnlockedCityCount();
+        return Math.max(0, base + levelBonus + cityBonus);
+      }
+
+      function applyPrestigeMilestones() {
+        if (!Array.isArray(gameState.prestige.milestonesClaimed)) {
+          gameState.prestige.milestonesClaimed = [];
+        }
+        const milestones = [
+          {
+            threshold: 1,
+            id: "p1",
+            reward: () =>
+              (gameState.prestige.permanentMultipliers.income += 0.05),
+            text: "Prestige Milestone I: +5% income multiplier",
+          },
+          {
+            threshold: 3,
+            id: "p3",
+            reward: () =>
+              (gameState.prestige.permanentMultipliers.click += 0.05),
+            text: "Prestige Milestone III: +5% click multiplier",
+          },
+          {
+            threshold: 5,
+            id: "p5",
+            reward: () => (gameState.prestige.permanentMultipliers.xp += 0.08),
+            text: "Prestige Milestone V: +8% XP multiplier",
+          },
+          {
+            threshold: 10,
+            id: "p10",
+            reward: () => {
+              gameState.criticalClickChance = Math.min(
+                0.5,
+                (gameState.criticalClickChance || 0.05) + 0.02,
+              );
+            },
+            text: "Prestige Milestone X: +2% critical click chance",
+          },
+        ];
+        milestones.forEach((m) => {
+          if (
+            gameState.prestige.count >= m.threshold &&
+            !gameState.prestige.milestonesClaimed.includes(m.id)
+          ) {
+            m.reward();
+            gameState.prestige.milestonesClaimed.push(m.id);
+            showNotification(`🌟 ${m.text}`, "success");
+          }
+        });
       }
 
       // Modal functions
       function showAttackOptions() {
         const modalSub = document.getElementById("modal-sub-options");
+        if (!selectedTargetPlayer) {
+          showNotification(
+            "Open a player profile from leaderboard first.",
+            "error",
+          );
+          return;
+        }
+        const cooldownLeft = Math.max(
+          0,
+          Math.ceil(
+            (gameState.pvpProtection.lastAttackAt + 45000 - Date.now()) / 1000,
+          ),
+        );
         if (modalSub) {
           modalSub.innerHTML = `
+                    <div class="text-xs text-gray-500 font-bold">Attack cooldown: ${cooldownLeft}s</div>
                     <button onclick="sendPvPThief('Pickpocket', 500)" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">Pickpocket (500 🥙)</button>
                     <button onclick="sendPvPThief('Professional', 2500)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">Professional (2500 🥙)</button>
+                    <button onclick="buyShield()" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg">Buy 10min Shield (2000 🥙)</button>
                 `;
           modalSub.classList.remove("hidden");
         }
       }
+
+      window.buyShield = function () {
+        const price = 2000;
+        if (gameState.kebabs < price) {
+          showNotification("Not enough kebabs for shield!", "error");
+          return;
+        }
+        gameState.kebabs -= price;
+        gameState.pvpProtection.shieldUntil = Date.now() + 10 * 60 * 1000;
+        showNotification("🛡️ Shield activated for 10 minutes.", "success");
+        updateDisplay();
+        closeSocialModal();
+      };
 
       function showGiftOptions() {
         const modalSub = document.getElementById("modal-sub-options");
@@ -5831,7 +7249,13 @@
 
       function closeSocialModal() {
         const modal = document.getElementById("social-modal");
+        const sub = document.getElementById("modal-sub-options");
         if (modal) modal.classList.add("hidden");
+        if (sub) {
+          sub.classList.add("hidden");
+          sub.innerHTML = "";
+        }
+        selectedTargetPlayer = null;
       }
 
       function sendGift(amount) {
@@ -5856,7 +7280,21 @@
       };
 
       const kjSuits = ["♠", "♥", "♦", "♣"];
-      const kjRanks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+      const kjRanks = [
+        "A",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+      ];
 
       function buildKjDeck() {
         const deck = [];
@@ -5874,7 +7312,8 @@
 
       function getKjCardValue(card) {
         if (card.rank === "A") return 11;
-        if (card.rank === "K" || card.rank === "Q" || card.rank === "J") return 10;
+        if (card.rank === "K" || card.rank === "Q" || card.rank === "J")
+          return 10;
         return Number(card.rank);
       }
 
@@ -5902,18 +7341,24 @@
         const playerCards = document.getElementById("kj-player-cards");
         const dealerScore = document.getElementById("kj-dealer-score");
         const playerScore = document.getElementById("kj-player-score");
-        if (!dealerCards || !playerCards || !dealerScore || !playerScore) return;
+        if (!dealerCards || !playerCards || !dealerScore || !playerScore)
+          return;
 
         playerScore.textContent = getKjScore(kjState.playerHand);
-        playerCards.innerHTML = kjState.playerHand.map((card) => renderKjCard(card)).join("");
+        playerCards.innerHTML = kjState.playerHand
+          .map((card) => renderKjCard(card))
+          .join("");
 
         if (!kjState.gameOver) {
           dealerScore.textContent = `${getKjCardValue(kjState.dealerHand[0])} + ?`;
           dealerCards.innerHTML =
-            renderKjCard(kjState.dealerHand[0]) + renderKjCard(kjState.dealerHand[1], true);
+            renderKjCard(kjState.dealerHand[0]) +
+            renderKjCard(kjState.dealerHand[1], true);
         } else {
           dealerScore.textContent = getKjScore(kjState.dealerHand);
-          dealerCards.innerHTML = kjState.dealerHand.map((card) => renderKjCard(card)).join("");
+          dealerCards.innerHTML = kjState.dealerHand
+            .map((card) => renderKjCard(card))
+            .join("");
         }
       }
 
@@ -5929,19 +7374,28 @@
 
         let winnings = 0;
         if (result === "blackjack") winnings = Math.floor(kjState.bet * 2.5);
-        else if (result === "win" || result === "dealer_bust") winnings = kjState.bet * 2;
+        else if (result === "win" || result === "dealer_bust")
+          winnings = kjState.bet * 2;
         else if (result === "push") winnings = kjState.bet;
 
         if (winnings > 0) {
           gameState.kebabs += winnings;
         }
 
-        if (result === "blackjack" || result === "win" || result === "dealer_bust") {
+        if (
+          result === "blackjack" ||
+          result === "win" ||
+          result === "dealer_bust"
+        ) {
           gameState.minigameWins += 1;
-          activateHype(result === "blackjack" ? 2.5 : 1.5, result === "blackjack" ? 90 : 45);
+          activateHype(
+            result === "blackjack" ? 2.5 : 1.5,
+            result === "blackjack" ? 90 : 45,
+          );
         }
 
-        resultDiv.className = "text-center font-black text-2xl py-4 rounded-2xl";
+        resultDiv.className =
+          "text-center font-black text-2xl py-4 rounded-2xl";
         if (result === "blackjack") {
           resultDiv.classList.add("bg-green-200", "text-green-900");
           resultDiv.textContent = `BLACKJACK! +${winnings.toLocaleString()} 🥙`;
@@ -5968,7 +7422,15 @@
         const controls = document.getElementById("kj-controls");
         const resultDiv = document.getElementById("kj-result");
         const resetBtn = document.getElementById("kj-reset");
-        if (!betInput || !setup || !game || !controls || !resultDiv || !resetBtn) return;
+        if (
+          !betInput ||
+          !setup ||
+          !game ||
+          !controls ||
+          !resultDiv ||
+          !resetBtn
+        )
+          return;
 
         const bet = Math.floor(Number(betInput.value));
         if (!Number.isFinite(bet) || bet < 10) {
@@ -6080,9 +7542,14 @@
         const multiplier = document.getElementById("km-multiplier");
         const payout = document.getElementById("km-payout");
         const cashout = document.getElementById("km-cashout");
-        if (multiplier) multiplier.textContent = `${kmState.multiplier.toFixed(2)}x`;
-        if (payout) payout.textContent = Math.floor(kmState.bet * kmState.multiplier).toLocaleString();
-        if (cashout) cashout.disabled = !kmState.active || kmState.safeRevealed === 0;
+        if (multiplier)
+          multiplier.textContent = `${kmState.multiplier.toFixed(2)}x`;
+        if (payout)
+          payout.textContent = Math.floor(
+            kmState.bet * kmState.multiplier,
+          ).toLocaleString();
+        if (cashout)
+          cashout.disabled = !kmState.active || kmState.safeRevealed === 0;
       }
 
       function finishKebabMine(result) {
@@ -6114,7 +7581,10 @@
           winnings = Math.floor(kmState.bet * kmState.multiplier);
           gameState.kebabs += winnings;
           gameState.minigameWins += 1;
-          activateHype(result === "clear" ? 2.2 : 1.4, result === "clear" ? 90 : 45);
+          activateHype(
+            result === "clear" ? 2.2 : 1.4,
+            result === "clear" ? 90 : 45,
+          );
         }
 
         resultDiv.className = "text-center font-black text-xl py-4 rounded-2xl";
@@ -6174,7 +7644,16 @@
         const resultDiv = document.getElementById("km-result");
         const resetBtn = document.getElementById("km-reset");
         const cashoutBtn = document.getElementById("km-cashout");
-        if (!betInput || !minesInput || !setup || !game || !resultDiv || !resetBtn || !cashoutBtn) return;
+        if (
+          !betInput ||
+          !minesInput ||
+          !setup ||
+          !game ||
+          !resultDiv ||
+          !resetBtn ||
+          !cashoutBtn
+        )
+          return;
 
         const bet = Math.floor(Number(betInput.value));
         const mines = Math.floor(Number(minesInput.value));
@@ -6222,6 +7701,45 @@
         updateDisplay();
       };
 
+      function initializeSessionGoals() {
+        if (!gameState.sessionGoals) {
+          gameState.sessionGoals = {
+            playStartClicks: gameState.totalClicks,
+            playStartEarned: gameState.totalKebabsEarned,
+            clickGoal: 200,
+            earnGoal: 5000,
+            completed: false,
+          };
+        }
+        if (!Number.isFinite(gameState.sessionGoals.playStartClicks)) {
+          gameState.sessionGoals.playStartClicks = gameState.totalClicks;
+        }
+        if (!Number.isFinite(gameState.sessionGoals.playStartEarned)) {
+          gameState.sessionGoals.playStartEarned = gameState.totalKebabsEarned;
+        }
+      }
+
+      function checkSessionGoals() {
+        initializeSessionGoals();
+        if (gameState.sessionGoals.completed) return;
+        const clickDelta =
+          gameState.totalClicks - gameState.sessionGoals.playStartClicks;
+        const earnedDelta =
+          gameState.totalKebabsEarned - gameState.sessionGoals.playStartEarned;
+        if (
+          clickDelta >= gameState.sessionGoals.clickGoal &&
+          earnedDelta >= gameState.sessionGoals.earnGoal
+        ) {
+          const reward = 2500 + Math.floor(gameState.level * 100);
+          gameState.kebabs += reward;
+          gameState.sessionGoals.completed = true;
+          showNotification(
+            `🎯 Session goals complete! +${reward.toLocaleString()} 🥙`,
+            "success",
+          );
+        }
+      }
+
       window.kmCashout = function () {
         if (!kmState.active || kmState.safeRevealed <= 0) return;
         finishKebabMine("cashout");
@@ -6246,39 +7764,90 @@
 
       // Chat functions
       window.switchChatRoom = function (room) {
+        if (room !== "global" && room !== "city") return;
         currentChatRoom = room;
-        showNotification(`Switched to ${room} chat`, "info");
+        const roomName =
+          room === "city"
+            ? `${getCityProfile(gameState.currentCity).name} City Room`
+            : "Global Chat";
+        const roomNameEl = document.getElementById("current-room-name");
+        if (roomNameEl) roomNameEl.textContent = roomName;
+
+        const roomButtons = document.querySelectorAll(".room-btn");
+        roomButtons.forEach((btn) => {
+          const isActive =
+            (room === "global" && btn.textContent.includes("Global")) ||
+            (room === "city" && btn.textContent.includes("City"));
+          btn.classList.toggle("active", isActive);
+          if (isActive) {
+            btn.classList.remove(
+              "bg-white",
+              "text-gray-600",
+              "border",
+              "border-gray-200",
+            );
+            btn.classList.add("bg-orange-500", "text-white");
+          } else {
+            btn.classList.remove("bg-orange-500", "text-white");
+            btn.classList.add(
+              "bg-white",
+              "text-gray-600",
+              "border",
+              "border-gray-200",
+            );
+          }
+        });
+
+        listenForChat();
+        showNotification(`Switched to ${roomName}`, "info");
       };
 
       // Local chat messages storage
-      let localChatMessages = [];
-      
+      let localChatMessagesByRoom = {
+        global: [],
+      };
+      let selectedTargetPlayer = null;
+
       window.handleChatSubmit = function (event) {
         event.preventDefault();
         const input = document.getElementById("chat-input");
         if (input && input.value.trim()) {
+          const roomKey =
+            currentChatRoom === "city"
+              ? `city_${gameState.currentCity}`
+              : "global";
+          if (!localChatMessagesByRoom[roomKey]) {
+            localChatMessagesByRoom[roomKey] = [];
+          }
           const message = {
             username: gameState.username || "Guest",
             text: input.value.trim(),
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            room: roomKey,
           };
-          localChatMessages.push(message);
+          localChatMessagesByRoom[roomKey].push(message);
           addChatMessage(message);
           input.value = "";
         }
       };
-      
+
       function addChatMessage(message) {
         const chatContainer = document.getElementById("chat-messages");
         if (!chatContainer) return;
-        
+
         // Remove "Tuning into frequency..." message if it exists
-        const placeholder = chatContainer.querySelector('.text-center.text-gray-400');
+        const placeholder = chatContainer.querySelector(
+          ".text-center.text-gray-400",
+        );
         if (placeholder) placeholder.remove();
-        
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'bg-white/70 rounded-xl p-3 border border-orange-100 animate-fade-in';
-        const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className =
+          "bg-white/70 rounded-xl p-3 border border-orange-100 animate-fade-in";
+        const time = new Date(message.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
         messageDiv.innerHTML = `
           <div class="flex justify-between items-start">
             <span class="font-bold text-orange-600 text-sm">${message.username}</span>
@@ -6292,18 +7861,172 @@
 
       // Trade and PvP stubs
       window.createTradeOffer = function () {
-        showNotification("Trading not implemented yet", "info");
-      };
-      window.sendPvPThief = function (type, cost) {
-        if (gameState.kebabs >= cost) {
-          gameState.kebabs -= cost;
-          const reward = Math.floor(Math.random() * 1000) + 500;
-          gameState.kebabs += reward;
-          showNotification(`${type} successful! +${reward} 🥙`, "success");
-          updateDisplay();
-        } else {
-          showNotification("Not enough kebabs!", "error");
+        const fee = 50;
+        if (gameState.kebabs < fee) {
+          showNotification("Need 50 🥙 listing fee to post a trade!", "error");
+          return;
         }
+        gameState.kebabs -= fee;
+        refreshTradeMarket(true);
+        renderTradeMarket();
+        updateDisplay();
+        showNotification("New market offers posted!", "success");
+      };
+      window.sendPvPThief = async function (type, cost) {
+        if (!selectedTargetPlayer) {
+          showNotification("No target selected.", "error");
+          return;
+        }
+        if (gameState.kebabs < cost) {
+          showNotification("Not enough kebabs!", "error");
+          return;
+        }
+        const attackerCooldownMs = 45000;
+        if (
+          Date.now() - (gameState.pvpProtection.lastAttackAt || 0) <
+          attackerCooldownMs
+        ) {
+          const left = Math.ceil(
+            (attackerCooldownMs -
+              (Date.now() - gameState.pvpProtection.lastAttackAt)) /
+              1000,
+          );
+          showNotification(`Attack cooling down: ${left}s`, "error");
+          return;
+        }
+
+        gameState.kebabs -= cost;
+        gameState.pvpProtection.lastAttackAt = Date.now();
+        let reward = Math.floor(Math.random() * 1000) + 500;
+        let stolenFromTarget = 0;
+        const successChance = type === "Professional" ? 0.7 : 0.55;
+        const succeeded = Math.random() < successChance;
+
+        if (!succeeded) {
+          reward = Math.floor(cost * 0.2);
+          gameState.kebabs += reward;
+          showNotification(
+            `${type} failed. Recovery bonus +${reward} 🥙`,
+            "error",
+          );
+          updateDisplay();
+          closeSocialModal();
+          return;
+        }
+
+        if (
+          firebaseEnabled &&
+          currentUser &&
+          selectedTargetPlayer.id &&
+          selectedTargetPlayer.id !== currentUser.uid
+        ) {
+          try {
+            await db.runTransaction(async (transaction) => {
+              const attackerRef = db.collection("players").doc(currentUser.uid);
+              const targetRef = db
+                .collection("players")
+                .doc(selectedTargetPlayer.id);
+              const attackerSnap = await transaction.get(attackerRef);
+              const targetSnap = await transaction.get(targetRef);
+              const attackerKebabs = Math.max(
+                0,
+                Number(attackerSnap.data()?.kebabs || 0),
+              );
+              const targetKebabs = Math.max(
+                0,
+                Number(targetSnap.data()?.kebabs || 0),
+              );
+              const newbieProtected = targetKebabs < 5000;
+              const targetShieldUntil = Math.max(
+                0,
+                Number(targetSnap.data()?.shieldUntil || 0),
+              );
+              const targetWindowStart = Math.max(
+                0,
+                Number(targetSnap.data()?.hourlyLossWindowStart || 0),
+              );
+              const targetWindowLoss = Math.max(
+                0,
+                Number(targetSnap.data()?.hourlyLossAmount || 0),
+              );
+              if (newbieProtected) {
+                stolenFromTarget = 0;
+                reward = Math.floor(reward * 0.35);
+              } else if (targetShieldUntil > Date.now()) {
+                stolenFromTarget = 0;
+                reward = Math.floor(reward * 0.4);
+              } else {
+                const windowActive = Date.now() - targetWindowStart < 3600000;
+                const maxHourlyLoss = Math.max(
+                  3000,
+                  Math.floor(targetKebabs * 0.18),
+                );
+                const currentLoss = windowActive ? targetWindowLoss : 0;
+                const remainingLossCap = Math.max(
+                  0,
+                  maxHourlyLoss - currentLoss,
+                );
+
+                const maxSteal = Math.floor(
+                  type === "Professional" ? 3500 : 1600,
+                );
+                const proposedSteal = Math.floor(
+                  reward * (type === "Professional" ? 1.2 : 0.8),
+                );
+                stolenFromTarget = Math.max(
+                  0,
+                  Math.min(
+                    targetKebabs,
+                    maxSteal,
+                    proposedSteal,
+                    remainingLossCap,
+                  ),
+                );
+                reward = Math.max(Math.floor(reward * 0.7), stolenFromTarget);
+              }
+
+              const newWindowStart =
+                Date.now() - targetWindowStart < 3600000
+                  ? targetWindowStart
+                  : Date.now();
+              const newWindowLoss =
+                Date.now() - targetWindowStart < 3600000
+                  ? targetWindowLoss + stolenFromTarget
+                  : stolenFromTarget;
+
+              transaction.update(targetRef, {
+                kebabs: Math.max(0, targetKebabs - stolenFromTarget),
+                lastAttackedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                hourlyLossWindowStart: newWindowStart,
+                hourlyLossAmount: newWindowLoss,
+              });
+              transaction.update(attackerRef, {
+                kebabs: attackerKebabs - cost + reward,
+                lastAttackAt: firebase.firestore.FieldValue.serverTimestamp(),
+                shieldUntil: gameState.pvpProtection.shieldUntil || 0,
+              });
+            });
+            gameState.kebabs += reward;
+          } catch (e) {
+            console.error("PvP transaction failed:", e);
+            gameState.kebabs += reward;
+          }
+        } else {
+          gameState.kebabs += reward;
+        }
+
+        const targetName = selectedTargetPlayer.name || "target";
+        const extra =
+          stolenFromTarget > 0
+            ? ` | ${targetName} -${stolenFromTarget.toLocaleString()} 🥙`
+            : " | target shield/cap reduced steal";
+        showNotification(
+          `${type} successful! +${reward.toLocaleString()} 🥙${extra}`,
+          "success",
+        );
+        updateDisplay();
+        updateLeaderboard();
+        closeSocialModal();
       };
 
       // Fix variable reference
@@ -6317,9 +8040,9 @@
         renderCities();
         renderMenu();
         updateDisplay();
+        if (currentChatRoom === "city") listenForChat();
         if (firebaseEnabled) {
           listenForCityActivity();
-          if (currentChatRoom === "city") listenForChat();
         }
       }
       const storyChapters = {
@@ -6452,6 +8175,11 @@
 
         // Check supply rush
         checkSupplyRush();
+        checkCityContracts();
+        checkSessionGoals();
+
+        // Rotate market trades periodically
+        refreshTradeMarket();
 
         // Update boost timer
         if (gameState.boostActive && Date.now() > gameState.boostEndTime) {
@@ -6494,6 +8222,7 @@
       function renderLoop() {
         updateDisplay();
         renderAchievements();
+        renderTradeMarket();
       }
 
       // Auto-save function
@@ -6513,6 +8242,15 @@
         setupTabNavigation();
         setupEventListeners();
         loadGame();
+        ensureCityFields();
+        ensureUpgradeCatalog();
+        ensureAchievementCatalog();
+        if (screenShakeToggle)
+          screenShakeToggle.checked = !!gameState.visual.screenShake;
+        if (notifLevelSelect)
+          notifLevelSelect.value = gameState.notificationLevel || "normal";
+        initializeSessionGoals();
+        ensureCityContracts();
         generateDailyQuests();
         console.log("Rendering upgrades and achievements...");
         achievementsDirty = true; // Force initial render
@@ -6520,7 +8258,11 @@
         renderAchievements();
         renderRestaurants();
         renderCities();
+        renderCityContracts();
         renderMenu();
+        updateLeaderboard();
+        refreshTradeMarket(true);
+        renderTradeMarket();
         if (
           !gameState.nextCityEventAt ||
           gameState.nextCityEventAt < Date.now()
