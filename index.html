@@ -2474,7 +2474,10 @@
         incomeRepBreakdown,
         incomeEventBreakdown,
         incomeFinalBreakdown;
-      let dailyQuestList, dailyQuestsListSidebar, suggestedActionText, nextMilestoneText;
+      let dailyQuestList,
+        dailyQuestsListSidebar,
+        suggestedActionText,
+        nextMilestoneText;
       let notifLevelSelect, cityContractsPanel, screenShakeToggle;
       let achievementsDirty = true;
       let incomeCache = null;
@@ -2530,7 +2533,9 @@
         incomeEventBreakdown = document.getElementById("incomeEventBreakdown");
         incomeFinalBreakdown = document.getElementById("incomeFinalBreakdown");
         dailyQuestList = document.getElementById("dailyQuestsList");
-        dailyQuestsListSidebar = document.getElementById("dailyQuestsListSidebar");
+        dailyQuestsListSidebar = document.getElementById(
+          "dailyQuestsListSidebar",
+        );
         suggestedActionText = document.getElementById("suggestedActionText");
         nextMilestoneText = document.getElementById("nextMilestoneText");
       }
@@ -2703,7 +2708,9 @@
       }
 
       function renderDailyQuests() {
-        const targets = [dailyQuestList, dailyQuestsListSidebar].filter(Boolean);
+        const targets = [dailyQuestList, dailyQuestsListSidebar].filter(
+          Boolean,
+        );
         if (targets.length === 0) return;
         if (!gameState.dailyQuests || gameState.dailyQuests.length === 0) {
           targets.forEach((el) => {
@@ -6267,6 +6274,7 @@
                 renderCities();
                 renderMenu();
                 renderRestaurants();
+                generateDailyQuests();
                 updateDisplay();
                 showNotification("☁️ Cloud state loaded!", "success");
               } catch (e) {
@@ -6311,37 +6319,39 @@
         }
       }
 
-      window.updateLeaderboard = async function () {
-        const listDiv = document.getElementById("leaderboard-list");
-        if (!listDiv) return;
+      function renderLocalLeaderboard(listDiv) {
+        const currentKebabs = Math.floor(gameState.kebabs);
+        const localPlayers = [
+          {
+            id: "local-rival-1",
+            username: "DonerKing",
+            kebabs: Math.floor(currentKebabs * 1.25 + 1200),
+          },
+          {
+            id: "local-rival-2",
+            username: "WrapWizard",
+            kebabs: Math.floor(currentKebabs * 1.05 + 600),
+          },
+          {
+            id: "local-rival-3",
+            username: "GrillNinja",
+            kebabs: Math.floor(currentKebabs * 0.9 + 300),
+          },
+          {
+            id: "local-you",
+            username: gameState.username || "You",
+            kebabs: currentKebabs,
+          },
+        ]
+          .map((player) => ({
+            ...player,
+            kebabs: Math.floor(player.kebabs),
+          }))
+          .sort((a, b) => b.kebabs - a.kebabs);
 
-        if (!firebaseEnabled) {
-          const localPlayers = [
-            {
-              id: "local-rival-1",
-              username: "DonerKing",
-              kebabs: Math.floor(gameState.totalKebabsEarned * 1.25 + 1200),
-            },
-            {
-              id: "local-rival-2",
-              username: "WrapWizard",
-              kebabs: Math.floor(gameState.totalKebabsEarned * 1.05 + 600),
-            },
-            {
-              id: "local-rival-3",
-              username: "GrillNinja",
-              kebabs: Math.floor(gameState.totalKebabsEarned * 0.9 + 300),
-            },
-            {
-              id: "local-you",
-              username: gameState.username || "You",
-              kebabs: Math.floor(gameState.kebabs),
-            },
-          ].sort((a, b) => b.kebabs - a.kebabs);
-
-          listDiv.innerHTML = "";
-          localPlayers.forEach((p, index) => {
-            listDiv.innerHTML += `
+        listDiv.innerHTML = "";
+        localPlayers.forEach((p, index) => {
+          listDiv.innerHTML += `
               <div class="flex justify-between p-3 bg-white/60 rounded-xl border border-orange-100 items-center shadow-sm animate-fade-in">
                 <div class="flex items-center gap-3">
                   <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${index + 1}</span>
@@ -6355,7 +6365,15 @@
                 </div>
               </div>
             `;
-          });
+        });
+      }
+
+      window.updateLeaderboard = async function () {
+        const listDiv = document.getElementById("leaderboard-list");
+        if (!listDiv) return;
+
+        if (!firebaseEnabled || !currentUser) {
+          renderLocalLeaderboard(listDiv);
           return;
         }
 
@@ -6392,8 +6410,13 @@
                             </div>
                         `;
           });
+          if (rank === 1) {
+            // No results from Firebase - fall back to local
+            renderLocalLeaderboard(listDiv);
+          }
         } catch (e) {
           console.error("Leaderboard load failed:", e);
+          renderLocalLeaderboard(listDiv);
         }
       };
 
