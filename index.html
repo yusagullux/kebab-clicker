@@ -307,12 +307,28 @@
         }
       }
 
+      /* Global Improvements */
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
       /* Glassmorphism Refinement */
       .glass-card {
         background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .glass-card:hover {
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
       }
 
       .city-card {
@@ -322,14 +338,47 @@
           rgba(255, 247, 237, 0.92)
         );
         box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .city-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(249, 115, 22, 0.16);
       }
 
       .upgrade-item {
         word-break: break-word;
+        transition: all 0.2s ease;
+      }
+
+      .upgrade-item:hover {
+        transform: translateX(4px);
+        background: rgba(249, 115, 22, 0.05);
       }
 
       .text-fit-tight {
         line-height: 1.15;
+      }
+
+      /* Button Improvements */
+      button {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-2px);
+      }
+
+      button:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       @keyframes pulse-red {
@@ -361,30 +410,328 @@
         }
       }
 
-      @media (max-width: 640px) {
+      /* Mobile Bottom Nav */
+      .mobile-bottom-nav {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .mobile-bottom-nav {
+          display: flex;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 40;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-top: 1px solid rgba(249, 115, 22, 0.15);
+          padding: 0.25rem 0;
+          padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          gap: 0;
+          justify-content: space-around;
+        }
+
+        .mobile-bottom-nav::-webkit-scrollbar {
+          display: none;
+        }
+
+        .mobile-bottom-nav button {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.125rem;
+          padding: 0.5rem 0.25rem;
+          border-radius: 0.75rem;
+          font-size: 0.6rem;
+          font-weight: 800;
+          color: #9ca3af;
+          background: transparent;
+          border: none;
+          white-space: nowrap;
+          transition: all 0.2s;
+          min-height: 48px;
+        }
+
+        .mobile-bottom-nav button .nav-icon {
+          font-size: 1.25rem;
+          line-height: 1;
+        }
+
+        .mobile-bottom-nav button.active,
+        .mobile-bottom-nav button:active {
+          color: #ea580c;
+          background: rgba(249, 115, 22, 0.08);
+        }
+
+        body {
+          padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+        }
+
+        .desktop-tab-nav {
+          display: none !important;
+        }
+
         .container {
-          padding: 0.75rem !important;
+          padding: 0.5rem !important;
         }
 
         .glass-card {
+          padding: 0.875rem !important;
+          border-radius: 1.25rem !important;
+        }
+
+        header {
+          padding: 0.75rem !important;
+          margin-bottom: 0.75rem !important;
+          border-radius: 1.25rem !important;
+        }
+
+        .grid-cols-3 {
+          gap: 0.75rem !important;
+        }
+
+        .kebab-button {
+          width: 160px !important;
+          height: 160px !important;
+          font-size: 4.5rem !important;
+          border-width: 8px !important;
+        }
+
+        .tab-btn {
+          padding: 0.75rem 1.25rem !important;
+          font-size: 0.95rem !important;
+        }
+
+        .upgrade-item {
+          padding: 0.875rem !important;
+        }
+
+        h3 {
+          font-size: 1.25rem !important;
+        }
+
+        .text-xs {
+          font-size: 0.8rem !important;
+        }
+
+        .text-sm {
+          font-size: 0.9rem !important;
+        }
+
+        .text-lg {
+          font-size: 1.1rem !important;
+        }
+
+        .text-xl {
+          font-size: 1.25rem !important;
+        }
+
+        .text-2xl {
+          font-size: 1.5rem !important;
+        }
+
+        .text-3xl {
+          font-size: 1.875rem !important;
+        }
+
+        /* Compact header items */
+        header .flex-wrap {
+          gap: 0.5rem !important;
+        }
+
+        header .w-24 {
+          width: 5rem !important;
+        }
+
+        /* Tab content cards */
+        .tab-content .glass-card,
+        .tab-content > div > div {
           border-radius: 1.25rem !important;
           padding: 1rem !important;
         }
 
+        /* Chat panel mobile */
+        .tab-content .h-\[700px\] {
+          height: 60vh !important;
+          min-height: 300px !important;
+        }
+
+        /* Community grid single column on mobile */
+        .lg\:grid-cols-3 {
+          grid-template-columns: 1fr !important;
+        }
+
+        /* Games grid single column */
+        .lg\:grid-cols-2 {
+          grid-template-columns: 1fr !important;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: 0.375rem !important;
+        }
+
+        .glass-card {
+          border-radius: 1rem !important;
+          padding: 0.75rem !important;
+        }
+
+        header {
+          padding: 0.625rem !important;
+          margin-bottom: 0.5rem !important;
+          border-radius: 1rem !important;
+        }
+
+        header .flex-wrap {
+          gap: 0.375rem !important;
+        }
+
+        .grid-cols-3 {
+          gap: 0.5rem !important;
+        }
+
         .kebab-button {
-          width: 9rem !important;
-          height: 9rem !important;
-          font-size: 3.25rem !important;
-          border-width: 8px !important;
+          width: 140px !important;
+          height: 140px !important;
+          font-size: 4rem !important;
+          border-width: 6px !important;
         }
 
         #chat-input {
           font-size: 16px;
+          padding: 0.75rem !important;
         }
 
         #leaderboard-list > div,
         #trade-market-list > div {
           padding: 0.75rem !important;
+        }
+
+        button {
+          min-height: 44px;
+        }
+
+        input,
+        select {
+          min-height: 44px;
+          font-size: 16px;
+        }
+
+        h3 {
+          font-size: 1.1rem !important;
+        }
+
+        .text-xs {
+          font-size: 0.75rem !important;
+        }
+
+        .text-sm {
+          font-size: 0.85rem !important;
+        }
+
+        .text-lg {
+          font-size: 1rem !important;
+        }
+
+        .text-xl {
+          font-size: 1.125rem !important;
+        }
+
+        .text-2xl {
+          font-size: 1.375rem !important;
+        }
+
+        .text-3xl {
+          font-size: 1.75rem !important;
+        }
+
+        /* Header: stack items tighter on very small screens */
+        header .flex-wrap > div {
+          flex: 0 0 auto;
+        }
+
+        /* Supply bars compact */
+        .bg-red-50.rounded-lg.px-3 {
+          padding: 0.25rem 0.5rem !important;
+        }
+
+        .bg-red-50 .text-xl {
+          font-size: 1rem !important;
+        }
+
+        /* Prestige section compact */
+        #prestigeSection {
+          padding: 0.5rem !important;
+        }
+
+        /* Marketing buttons compact */
+        #prestigeSection + .mt-4 button,
+        .bg-blue-50 button {
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.7rem !important;
+        }
+
+        /* Stats grid compact */
+        .grid.grid-cols-2.gap-4 {
+          gap: 0.5rem !important;
+        }
+
+        .grid.grid-cols-2.gap-4 > div {
+          padding: 0.75rem !important;
+        }
+      }
+
+      /* Custom scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(249, 115, 22, 0.2);
+        border-radius: 3px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(249, 115, 22, 0.4);
+      }
+
+      /* Smooth scroll for tab content */
+      .tab-content {
+        animation: fadeInTab 0.25s ease-out;
+      }
+
+      #tabContent {
+        scroll-margin-top: 1rem;
+      }
+
+      @keyframes fadeInTab {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Safe area padding for notch devices */
+      @supports (padding: env(safe-area-inset-top)) {
+        header {
+          padding-top: calc(0.75rem + env(safe-area-inset-top, 0px)) !important;
         }
       }
     </style>
@@ -405,45 +752,45 @@
       >
         <div class="flex flex-wrap justify-between items-center gap-4">
           <!-- Money Display -->
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">🥙</span>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl sm:text-3xl">🥙</span>
             <div>
-              <div class="text-xs text-gray-600">Kebabs</div>
-              <div class="text-2xl font-bold text-orange-500" id="kebabCount">
+              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Kebabs</div>
+              <div class="text-lg sm:text-2xl font-black text-orange-500" id="kebabCount">
                 0
               </div>
             </div>
           </div>
 
           <!-- Income Display -->
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">💰</span>
+          <div class="flex items-center gap-2">
+            <span class="text-lg sm:text-2xl">💰</span>
             <div>
-              <div class="text-xs text-gray-600">Per Second</div>
-              <div class="text-xl font-bold text-green-600" id="perSecond">
+              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Per Second</div>
+              <div class="text-base sm:text-xl font-black text-green-600" id="perSecond">
                 +0
               </div>
             </div>
           </div>
 
           <!-- Rating Display -->
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">⭐</span>
+          <div class="flex items-center gap-2">
+            <span class="text-lg sm:text-2xl">⭐</span>
             <div>
-              <div class="text-xs text-gray-600">Rating</div>
-              <div class="text-xl font-bold text-yellow-500" id="ratingDisplay">
+              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Rating</div>
+              <div class="text-base sm:text-xl font-black text-yellow-500" id="ratingDisplay">
                 ⭐⭐⭐
               </div>
             </div>
           </div>
 
           <!-- Reputation Display with Progress Bar -->
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">💯</span>
-            <div class="w-24">
-              <div class="text-xs text-gray-600">Reputation</div>
+          <div class="flex items-center gap-2">
+            <span class="text-lg sm:text-2xl">💯</span>
+            <div class="w-20 sm:w-24">
+              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Reputation</div>
               <div
-                class="text-xl font-bold text-blue-500"
+                class="text-base sm:text-xl font-black text-blue-500"
                 id="reputationDisplay"
               >
                 50
@@ -451,7 +798,7 @@
               <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
                 <div
                   id="reputationBar"
-                  class="bg-blue-500 h-full transition-all duration-300"
+                  class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-300"
                   style="width: 50%"
                 ></div>
               </div>
@@ -478,22 +825,22 @@
         </div>
 
         <div
-          class="glass-card rounded-3xl p-8 text-center flex flex-col justify-center items-center order-1 lg:order-2"
+          class="glass-card rounded-3xl p-6 lg:p-8 text-center flex flex-col justify-center items-center order-1 lg:order-2"
         >
           <!-- Level & XP -->
-          <div class="mb-8 w-full">
-            <div class="flex items-center justify-center gap-3 mb-3">
-              <span class="text-base text-gray-600 font-medium"
+          <div class="mb-4 sm:mb-8 w-full">
+            <div class="flex items-center justify-center gap-3 mb-2 sm:mb-3">
+              <span class="text-sm sm:text-base text-gray-600 font-medium"
                 >Master Level</span
               >
               <span
-                class="text-3xl font-black text-orange-500"
+                class="text-2xl sm:text-3xl font-black text-orange-500"
                 id="levelDisplay"
                 >1</span
               >
             </div>
             <div
-              class="bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner"
+              class="bg-gray-200 rounded-full h-3 sm:h-4 overflow-hidden shadow-inner"
             >
               <div
                 id="xpBar"
@@ -501,7 +848,7 @@
                 style="width: 0%"
               ></div>
             </div>
-            <div class="text-sm text-gray-500 font-bold mt-2" id="xpDisplay">
+            <div class="text-xs sm:text-sm text-gray-500 font-bold mt-1 sm:mt-2" id="xpDisplay">
               0/100
             </div>
           </div>
@@ -513,7 +860,7 @@
             ></div>
             <button
               id="kebabButton"
-              class="kebab-button glowing w-40 h-40 lg:w-72 lg:h-72 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 border-[10px] border-orange-800 text-6xl lg:text-8xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_20px_60px_-15px_rgba(234,88,12,0.5)] flex items-center justify-center select-none z-10 relative"
+              class="kebab-button glowing w-36 h-36 sm:w-44 sm:h-44 lg:w-72 lg:h-72 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 border-6 sm:border-8 lg:border-10 border-orange-800 text-5xl sm:text-6xl lg:text-8xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_20px_60px_-15px_rgba(234,88,12,0.5)] flex items-center justify-center select-none z-10 relative"
             >
               🥙
             </button>
@@ -521,7 +868,7 @@
 
           <!-- Per Second Display (Bottom) -->
           <div
-            class="mt-8 text-xl font-bold text-gray-700 bg-gray-50 px-6 py-2 rounded-full border border-gray-100 shadow-sm"
+            class="mt-4 sm:mt-8 text-base sm:text-xl font-bold text-gray-700 bg-gray-50 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full border border-gray-100 shadow-sm"
           >
             <span id="perSecondBottom" class="text-green-600 font-black"
               >+0</span
@@ -532,68 +879,68 @@
           <!-- Combo Display -->
           <div
             id="comboDisplay"
-            class="mt-6 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 drop-shadow-sm hidden"
+            class="mt-4 sm:mt-6 text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 drop-shadow-sm hidden"
           >
             🔥 COMBO x<span id="comboCount">0</span>
           </div>
 
           <!-- Visitor Panel -->
-          <div id="visitorPanel" class="mt-6 w-full"></div>
+          <div id="visitorPanel" class="mt-4 sm:mt-6 w-full"></div>
 
           <!-- Supply Display with Progress Bars -->
-          <div class="flex justify-center gap-2 mt-3 flex-wrap">
+          <div class="flex justify-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 flex-wrap">
             <div
-              class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24"
+              class="bg-red-50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 w-20 sm:w-24"
             >
-              <span class="text-xl">🥩</span>
-              <div class="flex-1">
-                <div class="text-xs font-semibold text-gray-700 text-center">
+              <span class="text-base sm:text-xl">🥩</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] sm:text-xs font-semibold text-gray-700 text-center">
                   <span id="meatStock">100</span>
                 </div>
                 <div
-                  class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden"
+                  class="bg-gray-200 rounded-full h-1 sm:h-1.5 mt-0.5 sm:mt-1 overflow-hidden"
                 >
                   <div
                     id="meatBar"
-                    class="bg-red-500 h-full transition-all duration-300"
+                    class="bg-gradient-to-r from-red-400 to-red-600 h-full transition-all duration-300"
                     style="width: 20%"
                   ></div>
                 </div>
               </div>
             </div>
             <div
-              class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24"
+              class="bg-amber-50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 w-20 sm:w-24"
             >
-              <span class="text-xl">🍞</span>
-              <div class="flex-1">
-                <div class="text-xs font-semibold text-gray-700 text-center">
+              <span class="text-base sm:text-xl">🍞</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] sm:text-xs font-semibold text-gray-700 text-center">
                   <span id="breadStock">100</span>
                 </div>
                 <div
-                  class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden"
+                  class="bg-gray-200 rounded-full h-1 sm:h-1.5 mt-0.5 sm:mt-1 overflow-hidden"
                 >
                   <div
                     id="breadBar"
-                    class="bg-red-500 h-full transition-all duration-300"
+                    class="bg-gradient-to-r from-amber-400 to-amber-600 h-full transition-all duration-300"
                     style="width: 20%"
                   ></div>
                 </div>
               </div>
             </div>
             <div
-              class="bg-red-50 rounded-lg px-3 py-2 flex items-center gap-2 w-24"
+              class="bg-green-50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 w-20 sm:w-24"
             >
-              <span class="text-xl">🥬</span>
-              <div class="flex-1">
-                <div class="text-xs font-semibold text-gray-700 text-center">
+              <span class="text-base sm:text-xl">🥬</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] sm:text-xs font-semibold text-gray-700 text-center">
                   <span id="vegStock">100</span>
                 </div>
                 <div
-                  class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden"
+                  class="bg-gray-200 rounded-full h-1 sm:h-1.5 mt-0.5 sm:mt-1 overflow-hidden"
                 >
                   <div
                     id="vegBar"
-                    class="bg-red-500 h-full transition-all duration-300"
+                    class="bg-gradient-to-r from-green-400 to-green-600 h-full transition-all duration-300"
                     style="width: 20%"
                   ></div>
                 </div>
@@ -602,22 +949,22 @@
           </div>
 
           <!-- Weather & Time -->
-          <div class="flex justify-center items-center gap-3 mt-3">
+          <div class="flex justify-center items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
             <div
-              class="bg-blue-50 rounded-lg px-3 py-1 flex items-center gap-1"
+              class="bg-blue-50 rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 flex items-center gap-1"
             >
-              <span id="weatherIcon" class="text-xl">☀️</span>
-              <span id="weatherText" class="text-xs font-semibold text-gray-700"
+              <span id="weatherIcon" class="text-base sm:text-xl">☀️</span>
+              <span id="weatherText" class="text-[10px] sm:text-xs font-semibold text-gray-700"
                 >Sunny</span
               >
             </div>
             <div
-              class="bg-blue-50 rounded-lg px-3 py-1 flex items-center gap-1"
+              class="bg-blue-50 rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 flex items-center gap-1"
             >
-              <span class="text-xl">🕐</span>
+              <span class="text-base sm:text-xl">🕐</span>
               <span
                 id="clockDisplay"
-                class="text-xs font-semibold text-gray-700"
+                class="text-[10px] sm:text-xs font-semibold text-gray-700"
                 >12:00</span
               >
             </div>
@@ -916,7 +1263,7 @@
       </div>
 
       <!-- Tab Navigation -->
-      <nav class="glass-card rounded-3xl p-3 mb-8 relative z-10">
+      <nav class="glass-card rounded-3xl p-3 mb-8 relative z-10 desktop-tab-nav">
         <div class="flex flex-wrap justify-center gap-4">
           <button
             class="tab-btn bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600 px-6 py-3 rounded-2xl font-black transition-all shadow-sm"
@@ -1222,278 +1569,153 @@
 
         <!-- Community Tab -->
         <div id="community-tab" class="tab-content hidden">
-          <div class="glass-card rounded-[40px] p-10 lg:p-16 space-y-12">
-            <div class="flex flex-wrap justify-between items-center gap-6">
+          <!-- Community Header -->
+          <div class="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 rounded-3xl p-6 sm:p-10 mb-6 text-white shadow-2xl relative overflow-hidden">
+            <div class="absolute inset-0 opacity-10 text-[12rem] flex items-center justify-end pr-8 pointer-events-none select-none">🌍</div>
+            <div class="relative z-10 flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h2 class="text-5xl font-black text-gray-800 tracking-tight">
-                  🤝 Kebab Community
-                </h2>
-                <p class="text-xl text-gray-500 font-medium mt-2">
-                  Connect, trade, and compete with masters worldwide.
-                </p>
+                <h2 class="text-3xl sm:text-5xl font-black tracking-tight">Kebab Community</h2>
+                <p class="text-orange-100 font-medium mt-1 text-sm sm:text-base">Connect, trade, and compete with masters worldwide.</p>
               </div>
-              <div
-                id="auth-status"
-                class="bg-gray-100 px-8 py-4 rounded-3xl text-lg font-bold text-gray-600 shadow-inner"
-              >
+              <div id="auth-status" class="bg-white/20 backdrop-blur-sm border border-white/30 px-5 py-3 rounded-2xl text-sm font-bold text-white shadow-inner">
                 Guest Session
-                <button
-                  onclick="loginWithGoogle()"
-                  class="text-orange-500 hover:underline ml-3"
-                >
-                  Sign In with Google
-                </button>
+                <button onclick="loginWithGoogle()" class="underline ml-2 hover:text-yellow-200 transition-colors">Sign In</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="glass-card rounded-2xl p-4 text-center">
+              <div class="text-2xl font-black text-orange-500" id="comm-stat-rank">#—</div>
+              <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">Your Rank</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center">
+              <div class="text-2xl font-black text-blue-500" id="community-bonus-val">1.00x</div>
+              <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">Community Bonus</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center">
+              <div class="text-2xl font-black text-green-500" id="comm-stat-online">—</div>
+              <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">Online Now</div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 text-center">
+              <div class="text-2xl font-black text-purple-500" id="comm-stat-messages">0</div>
+              <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1">Messages Sent</div>
+            </div>
+          </div>
+
+          <!-- Main Grid -->
+          <div class="grid lg:grid-cols-3 gap-5">
+
+            <!-- LEFT: Leaderboard -->
+            <div class="space-y-5">
+              <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
+                <div class="bg-gradient-to-r from-amber-400 to-orange-500 p-5 flex justify-between items-center">
+                  <h3 class="text-xl font-black text-white flex items-center gap-2">🏆 Top Masters</h3>
+                  <button onclick="updateLeaderboard()" class="bg-white/20 hover:bg-white/40 text-white p-2 rounded-xl transition-all" title="Refresh">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </button>
+                </div>
+                <div id="leaderboard-list" class="p-4 space-y-2 max-h-[360px] overflow-y-auto custom-scrollbar">
+                  <div class="text-gray-400 italic text-center py-8 font-bold">Loading elite chefs...</div>
+                </div>
+              </div>
+
+              <!-- World Feed -->
+              <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-5">
+                  <h3 class="text-xl font-black text-white flex items-center gap-2">📡 World Feed</h3>
+                </div>
+                <div id="world-feed" class="p-4 space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar">
+                  <div class="text-gray-300 italic text-center py-4 text-sm">Scanning world events...</div>
+                </div>
               </div>
             </div>
 
-            <div class="grid lg:grid-cols-3 gap-8">
-              <!-- Left Column: Leaderboard & Feed -->
-              <div class="space-y-8">
-                <!-- Global Leaderboard -->
-                <div
-                  class="bg-gradient-to-br from-amber-400 to-orange-600 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden group"
-                >
-                  <div
-                    class="absolute -right-6 -top-6 text-8xl opacity-10 group-hover:scale-110 transition-transform"
-                  >
-                    🏆
-                  </div>
-                  <div
-                    class="flex justify-between items-center mb-6 relative z-10"
-                  >
-                    <h3 class="text-2xl font-black">Top Masters</h3>
-                    <button
-                      onclick="updateLeaderboard()"
-                      class="bg-white/20 hover:bg-white/30 p-2 rounded-xl backdrop-blur-sm transition-all"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="3"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  <div id="leaderboard-list" class="space-y-3 relative z-10">
-                    <div
-                      class="text-white/60 italic py-8 text-center font-bold"
-                    >
-                      Loading elite chefs...
-                    </div>
+            <!-- MIDDLE: Chat -->
+            <div class="glass-card rounded-3xl overflow-hidden shadow-xl flex flex-col" style="height: 680px;">
+              <!-- Chat Header -->
+              <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100 p-4 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                  <h3 class="text-lg font-black text-gray-800 flex items-center gap-2">💬 <span id="current-room-name">Global Chat</span></h3>
+                  <div class="flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span id="online-count">Live</span>
                   </div>
                 </div>
-
-                <!-- World Feed -->
-                <div
-                  class="glass-card rounded-[32px] p-8 border-2 border-gray-100"
-                >
-                  <h3
-                    class="text-lg font-black text-gray-400 mb-4 flex items-center gap-3 uppercase tracking-[0.2em]"
-                  >
-                    📡 World Feed
-                  </h3>
-                  <div
-                    id="world-feed"
-                    class="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-2"
-                  >
-                    <div class="text-gray-300 italic text-center py-4">
-                      Scanning world events...
-                    </div>
-                  </div>
+                <!-- Room Tabs -->
+                <div class="flex gap-2">
+                  <button onclick="switchChatRoom('global')" class="room-btn flex-1 bg-orange-500 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm">🌍 Global</button>
+                  <button onclick="switchChatRoom('city')" class="room-btn flex-1 bg-white text-gray-600 border border-gray-200 py-2 rounded-xl text-xs font-bold transition-all hover:bg-orange-50">🏙️ City</button>
                 </div>
               </div>
 
-              <!-- Middle Column: Dynamic Social Hub -->
-              <div
-                class="glass-card rounded-[40px] border-2 border-orange-100 flex flex-col h-[700px] overflow-hidden shadow-2xl bg-white/40"
-              >
-                <!-- Room Header -->
-                <div
-                  class="p-6 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50 flex flex-col gap-4"
-                >
-                  <div class="flex justify-between items-center">
-                    <h3
-                      class="text-2xl font-black text-gray-800 flex items-center gap-2"
-                    >
-                      💬 <span id="current-room-name">Global Chat</span>
-                    </h3>
-                    <div
-                      class="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-1.5 rounded-full"
-                    >
-                      <span
-                        class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"
-                      ></span>
-                      <span
-                        id="online-count"
-                        class="text-xs font-black uppercase"
-                        >Live</span
-                      >
-                    </div>
-                  </div>
+              <!-- Messages -->
+              <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-gray-50/50">
+                <div class="text-center text-gray-400 py-16 font-bold italic text-sm">Tuning into frequency...</div>
+              </div>
 
-                  <!-- Room Switcher -->
-                  <div class="flex gap-2">
-                    <button
-                      onclick="switchChatRoom('global')"
-                      class="room-btn active bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md"
-                    >
-                      🌍 Global
-                    </button>
-                    <button
-                      onclick="switchChatRoom('city')"
-                      class="room-btn bg-white text-gray-600 border border-gray-200 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:bg-orange-50"
-                    >
-                      🏙️ City Room
-                    </button>
-                  </div>
+              <!-- Input -->
+              <div class="p-4 bg-white border-t border-gray-100">
+                <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex gap-2">
+                  <input
+                    type="text"
+                    id="chat-input"
+                    maxlength="100"
+                    placeholder="Say something..."
+                    class="flex-1 px-4 py-3 rounded-2xl bg-gray-100 border-2 border-transparent focus:border-orange-400 focus:bg-white focus:outline-none text-sm font-medium transition-all"
+                  />
+                  <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-3 rounded-2xl font-black text-sm transition-all shadow-md active:scale-95">
+                    ➤
+                  </button>
+                </form>
+                <div id="chat-cooldown-timer" class="text-[10px] font-bold text-gray-400 text-center mt-1 h-3 uppercase tracking-widest"></div>
+              </div>
+            </div>
 
-                  <!-- Activity Bonus Display -->
-                  <div
-                    class="bg-blue-600/10 border border-blue-200 rounded-2xl p-4 flex justify-between items-center"
-                  >
-                    <div>
-                      <div
-                        class="text-[10px] font-black uppercase tracking-widest text-blue-600"
-                      >
-                        Community Bonus
-                      </div>
-                      <div
-                        class="text-2xl font-black text-blue-700"
-                        id="community-bonus-val"
-                      >
-                        1.00x
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <div
-                        class="text-[10px] font-black uppercase tracking-widest text-blue-600"
-                      >
-                        City Activity
-                      </div>
-                      <div
-                        class="w-24 h-2 bg-blue-200 rounded-full mt-1 overflow-hidden"
-                      >
-                        <div
-                          id="city-activity-bar"
-                          class="h-full bg-blue-500 transition-all duration-1000"
-                          style="width: 20%"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
+            <!-- RIGHT: Trade + PvP -->
+            <div class="space-y-5">
+              <!-- Trade Market -->
+              <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 flex justify-between items-center">
+                  <h3 class="text-xl font-black text-white flex items-center gap-2">🔄 Stock Exchange</h3>
+                  <button onclick="createTradeOffer()" class="bg-white/20 hover:bg-white/40 text-white text-xs font-black px-3 py-2 rounded-xl transition-all">+ POST</button>
                 </div>
-
-                <!-- Chat Messages -->
-                <div
-                  id="chat-messages"
-                  class="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth custom-scrollbar bg-white/30"
-                >
-                  <div class="text-center text-gray-400 py-20 font-bold italic">
-                    Tuning into frequency...
-                  </div>
-                </div>
-
-                <!-- Message Input -->
-                <div class="p-6 bg-white border-t border-orange-100">
-                  <form
-                    id="chat-form"
-                    onsubmit="handleChatSubmit(event)"
-                    class="flex flex-col gap-3"
-                  >
-                    <div class="flex gap-3">
-                      <input
-                        type="text"
-                        id="chat-input"
-                        maxlength="100"
-                        placeholder="Type a message..."
-                        class="flex-1 px-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-orange-400 focus:bg-white focus:outline-none text-lg font-medium transition-all shadow-inner"
-                      />
-                      <button
-                        type="submit"
-                        id="chat-send-btn"
-                        class="bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-orange-600 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale"
-                      >
-                        SEND
-                      </button>
-                    </div>
-                    <div
-                      id="chat-cooldown-timer"
-                      class="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest h-4"
-                    ></div>
-                  </form>
+                <div id="trade-market-list" class="p-4 space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar">
+                  <div class="text-gray-400 italic text-center py-8 font-bold text-sm">Monitoring markets...</div>
                 </div>
               </div>
 
-              <!-- Right Column: Trade Market & PvP -->
-              <div class="space-y-8">
-                <!-- Trade Market -->
-                <div
-                  class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden group"
-                >
-                  <div
-                    class="absolute -right-6 -top-6 text-8xl opacity-10 group-hover:scale-110 transition-transform"
-                  >
-                    🔄
-                  </div>
-                  <h3 class="text-2xl font-black mb-6 relative z-10">
-                    Stock Exchange
-                  </h3>
-                  <div
-                    id="trade-market-list"
-                    class="space-y-4 min-h-[150px] max-h-[350px] overflow-y-auto custom-scrollbar pr-2 relative z-10"
-                  >
-                    <div
-                      class="text-white/60 italic py-8 text-center font-bold"
-                    >
-                      Monitoring markets...
-                    </div>
-                  </div>
-                  <button
-                    onclick="createTradeOffer()"
-                    class="w-full mt-8 py-5 bg-white text-blue-600 rounded-2xl font-black text-xl hover:bg-blue-50 transition-all shadow-xl active:scale-95 relative z-10"
-                  >
-                    POST TRADE
+              <!-- PvP -->
+              <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
+                <div class="bg-gradient-to-r from-red-500 to-rose-600 p-5">
+                  <h3 class="text-xl font-black text-white flex items-center gap-2">🥷 Thief Syndicate</h3>
+                  <p class="text-red-100 text-xs font-medium mt-1">Infiltrate leaders and seize their assets.</p>
+                </div>
+                <div class="p-4 grid grid-cols-2 gap-3">
+                  <button onclick="sendPvPThief('Pickpocket', 500)" class="bg-red-50 hover:bg-red-100 border-2 border-red-200 p-4 rounded-2xl transition-all text-left group">
+                    <div class="text-xl mb-1">🧤</div>
+                    <div class="font-black text-gray-800 text-sm">Pickpocket</div>
+                    <div class="text-xs font-bold text-red-500 mt-0.5">500 🥙</div>
+                  </button>
+                  <button onclick="sendPvPThief('Professional', 2500)" class="bg-red-50 hover:bg-red-100 border-2 border-red-200 p-4 rounded-2xl transition-all text-left group">
+                    <div class="text-xl mb-1">🎭</div>
+                    <div class="font-black text-gray-800 text-sm">Pro Agent</div>
+                    <div class="text-xs font-bold text-red-500 mt-0.5">2,500 🥙</div>
                   </button>
                 </div>
+              </div>
 
-                <!-- PvP Section -->
-                <div
-                  class="bg-gradient-to-br from-red-600 to-rose-700 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden group"
-                >
-                  <div
-                    class="absolute -right-6 -top-6 text-8xl opacity-10 group-hover:scale-110 transition-transform"
-                  >
-                    🥷
+              <!-- Activity Bonus -->
+              <div class="glass-card rounded-3xl p-5 border-2 border-blue-100">
+                <div class="text-xs font-black text-blue-600 uppercase tracking-widest mb-3">City Activity</div>
+                <div class="flex items-center gap-3">
+                  <div class="flex-1 h-3 bg-blue-100 rounded-full overflow-hidden">
+                    <div id="city-activity-bar" class="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-1000 rounded-full" style="width: 20%"></div>
                   </div>
-                  <h3 class="text-2xl font-black mb-2">Thief Syndicate</h3>
-                  <p class="text-red-200 mb-6 font-medium">
-                    Infiltrate the leaders and seize their assets.
-                  </p>
-                  <div class="grid grid-cols-2 gap-4">
-                    <button
-                      onclick="sendPvPThief('Pickpocket', 500)"
-                      class="bg-white/10 hover:bg-white/20 p-4 rounded-2xl border-2 border-white/20 transition-all text-left"
-                    >
-                      <div class="text-lg font-black">🧤 Pickpocket</div>
-                      <div class="text-sm font-bold text-red-200">500 🥙</div>
-                    </button>
-                    <button
-                      onclick="sendPvPThief('Professional', 2500)"
-                      class="bg-white/10 hover:bg-white/20 p-4 rounded-2xl border-2 border-white/20 transition-all text-left"
-                    >
-                      <div class="text-lg font-black">🎭 Pro Agent</div>
-                      <div class="text-sm font-bold text-red-200">2,500 🥙</div>
-                    </button>
-                  </div>
+                  <span class="text-sm font-black text-blue-700" id="city-activity-pct">20%</span>
                 </div>
+                <p class="text-xs text-gray-500 font-medium mt-2">More active players = higher community bonus for everyone.</p>
               </div>
             </div>
           </div>
@@ -3638,40 +3860,20 @@
       // Tab navigation
       function setupTabNavigation() {
         const tabButtons = document.querySelectorAll(".tab-btn");
-        const tabContents = document.querySelectorAll(".tab-content");
-
         if (tabButtons.length === 0) {
           console.error("No tab buttons found!");
           return;
         }
-        if (tabContents.length === 0) {
-          console.error("No tab contents found!");
-          return;
-        }
-
         tabButtons.forEach((button) => {
           button.addEventListener("click", () => {
-            const tabId = button.dataset.tab;
+            switchTab(button.dataset.tab);
+          });
+        });
 
-            // Update button styles
-            tabButtons.forEach((btn) => {
-              btn.classList.remove("bg-orange-500", "text-white");
-              btn.classList.add("bg-gray-100", "text-gray-600");
-            });
-            button.classList.remove("bg-gray-100", "text-gray-600");
-            button.classList.add("bg-orange-500", "text-white");
-
-            // Show/hide content
-            tabContents.forEach((content) => {
-              content.classList.add("hidden");
-            });
-            document.getElementById(`${tabId}-tab`).classList.remove("hidden");
-
-            // Render tab-specific content
-            if (tabId === "restaurants") renderRestaurants();
-            if (tabId === "menu") renderMenu();
-            if (tabId === "supply") renderSupply();
-            if (tabId === "cities") renderCities();
+        // Mobile bottom nav — wired here so DOM is guaranteed ready
+        document.querySelectorAll('.mobile-bottom-nav button').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.tab) switchTab(btn.dataset.tab);
           });
         });
       }
@@ -4865,13 +5067,24 @@
       function getCloudStatePayload() {
         return {
           saveVersion: SAVE_VERSION,
+          kebabs: gameState.kebabs,
+          totalClicks: gameState.totalClicks,
+          totalKebabsEarned: gameState.totalKebabsEarned,
+          maxCombo: gameState.maxCombo,
+          playStartTime: gameState.playStartTime,
+          username: gameState.username,
+          gameHour: gameState.gameHour,
+          weather: gameState.weather,
           level: gameState.level,
           xp: gameState.xp,
           xpToNextLevel: gameState.xpToNextLevel,
           upgrades: gameState.upgrades,
           restaurants: gameState.restaurants,
+          autoSupply: gameState.autoSupply,
           supply: gameState.supply,
           cities: gameState.cities,
+          menuItems: gameState.menuItems,
+          achievements: gameState.achievements,
           selectedMenuItem: gameState.selectedMenuItem,
           currentCity: gameState.currentCity,
           cityRiskModes: gameState.cityRiskModes,
@@ -4889,8 +5102,6 @@
           cityProgression: gameState.cityProgression,
           pvpProtection: gameState.pvpProtection,
           visual: gameState.visual,
-
-          // Time-based progression fields
           lastSaveTime: Date.now(),
           lastDailyRewardTime: gameState.lastDailyRewardTime,
           dailyStreak: gameState.dailyStreak,
@@ -4899,6 +5110,33 @@
 
       function mergeCloudState(data) {
         const migrated = migrateSaveData(data);
+        gameState.kebabs = Math.max(
+          gameState.kebabs,
+          clamp(migrated.kebabs, 0, 1e18, gameState.kebabs),
+        );
+        gameState.totalClicks = Math.max(
+          gameState.totalClicks,
+          clamp(migrated.totalClicks, 0, 1e18, gameState.totalClicks),
+        );
+        gameState.totalKebabsEarned = Math.max(
+          gameState.totalKebabsEarned,
+          clamp(migrated.totalKebabsEarned, 0, 1e18, gameState.totalKebabsEarned),
+        );
+        gameState.maxCombo = Math.max(
+          gameState.maxCombo,
+          clamp(migrated.maxCombo, 0, 1e9, gameState.maxCombo),
+        );
+        if (migrated.menuItems) {
+          for (const key in migrated.menuItems) {
+            if (gameState.menuItems[key]) {
+              gameState.menuItems[key].unlocked =
+                !!gameState.menuItems[key].unlocked || !!migrated.menuItems[key].unlocked;
+            }
+          }
+        }
+        if (migrated.autoSupply) {
+          gameState.autoSupply = { ...gameState.autoSupply, ...migrated.autoSupply };
+        }
         gameState.level = Math.max(
           gameState.level,
           clamp(migrated.level, 1, 1e6, gameState.level),
@@ -6204,16 +6442,16 @@
           const provider = new firebase.auth.GoogleAuthProvider();
           auth.signInWithPopup(provider).catch((e) => {
             console.error("Login Error:", e);
-            if (e.code === "auth/unauthorized-domain") {
-              showNotification(
-                "Error: Domain not authorized in Firebase! Please add yusagullux.github.io to Authorized Domains.",
-                "error",
-              );
-            } else if (e.message.includes("Cross-Origin-Opener-Policy")) {
-              showNotification(
-                "Error: Cross-Origin-Opener-Policy blocking popup. Try using redirect sign-in or check server headers.",
-                "error",
-              );
+            if (
+              e.code === "auth/unauthorized-domain" ||
+              e.code === "auth/operation-not-supported-in-this-environment" ||
+              e.message.includes("Cross-Origin-Opener-Policy")
+            ) {
+              // Popup blocked — fall back to redirect flow
+              showNotification("Redirecting to Google sign-in...", "info");
+              auth.signInWithRedirect(provider).catch((re) => {
+                showNotification("Login failed: " + re.message, "error");
+              });
             } else {
               showNotification("Login failed: " + e.message, "error");
             }
@@ -6233,6 +6471,17 @@
       };
 
       if (firebaseEnabled) {
+        // Handle redirect sign-in result (from signInWithRedirect fallback)
+        auth.getRedirectResult().then((result) => {
+          if (result && result.user) {
+            showNotification(`Welcome, ${result.user.displayName || "Chef"}! ☁️`, "success");
+          }
+        }).catch((e) => {
+          if (e.code !== "auth/no-auth-event") {
+            console.error("Redirect result error:", e);
+          }
+        });
+
         auth.onAuthStateChanged((user) => {
           currentUser = user;
           if (user) {
@@ -6322,50 +6571,36 @@
       function renderLocalLeaderboard(listDiv) {
         const currentKebabs = Math.floor(gameState.kebabs);
         const localPlayers = [
-          {
-            id: "local-rival-1",
-            username: "DonerKing",
-            kebabs: Math.floor(currentKebabs * 1.25 + 1200),
-          },
-          {
-            id: "local-rival-2",
-            username: "WrapWizard",
-            kebabs: Math.floor(currentKebabs * 1.05 + 600),
-          },
-          {
-            id: "local-rival-3",
-            username: "GrillNinja",
-            kebabs: Math.floor(currentKebabs * 0.9 + 300),
-          },
-          {
-            id: "local-you",
-            username: gameState.username || "You",
-            kebabs: currentKebabs,
-          },
+          { id: "local-rival-1", username: "DonerKing",  kebabs: Math.floor(currentKebabs * 1.25 + 1200) },
+          { id: "local-rival-2", username: "WrapWizard", kebabs: Math.floor(currentKebabs * 1.05 + 600) },
+          { id: "local-rival-3", username: "GrillNinja",  kebabs: Math.floor(currentKebabs * 0.9 + 300) },
+          { id: "local-you",     username: gameState.username || "You", kebabs: currentKebabs },
         ]
-          .map((player) => ({
-            ...player,
-            kebabs: Math.floor(player.kebabs),
-          }))
+          .map(p => ({ ...p, kebabs: Math.floor(p.kebabs) }))
           .sort((a, b) => b.kebabs - a.kebabs);
 
+        const medals = ["🥇","🥈","🥉","4️⃣"];
         listDiv.innerHTML = "";
         localPlayers.forEach((p, index) => {
+          const isMe = p.id === "local-you";
           listDiv.innerHTML += `
-              <div class="flex justify-between p-3 bg-white/60 rounded-xl border border-orange-100 items-center shadow-sm animate-fade-in">
-                <div class="flex items-center gap-3">
-                  <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${index + 1}</span>
-                  <span class="font-bold text-sm text-gray-700">${p.username}</span>
-                </div>
-                <div class="flex flex-col items-end">
-                  <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()}</span>
-                  <div class="flex gap-1.5 mt-1.5">
-                    ${p.id !== "local-you" ? `<button onclick="openSocialModal('${p.id}', '${p.username}')" class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold transition-all">Interact</button>` : ""}
-                  </div>
+            <div class="flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${isMe ? "bg-orange-50 border-orange-200" : "bg-white border-gray-100 hover:border-orange-100"}">
+              <div class="flex items-center gap-2.5">
+                <span class="text-lg">${medals[index] || (index+1)}</span>
+                <div>
+                  <div class="font-black text-sm text-gray-800 ${isMe ? "text-orange-600" : ""}">${p.username}${isMe ? " (You)" : ""}</div>
+                  <div class="text-xs font-bold text-gray-400">${p.kebabs.toLocaleString()} 🥙</div>
                 </div>
               </div>
-            `;
+              ${!isMe ? `<button onclick="openSocialModal('${p.id}','${p.username}')" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all">⚔️</button>` : ""}
+            </div>
+          `;
         });
+
+        // Update rank stat
+        const myRank = localPlayers.findIndex(p => p.id === "local-you") + 1;
+        const rankEl = document.getElementById("comm-stat-rank");
+        if (rankEl) rankEl.textContent = `#${myRank}`;
       }
 
       window.updateLeaderboard = async function () {
@@ -6935,25 +7170,34 @@
         const chatContainer = document.getElementById("chat-messages");
         if (!chatContainer) return;
 
-        const roomKey =
-          currentChatRoom === "city"
-            ? `city_${gameState.currentCity}`
-            : "global";
+        const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
         const messages = localChatMessagesByRoom[roomKey] || [];
 
         chatContainer.innerHTML = "";
         if (messages.length === 0) {
           const empty = document.createElement("div");
-          empty.className = "text-center text-gray-400 py-20 font-bold italic";
-          empty.textContent =
-            currentChatRoom === "city"
-              ? `No messages yet in ${getCityProfile(gameState.currentCity).name}. Start the conversation!`
-              : "No global messages yet. Say hi to everyone!";
+          empty.className = "text-center text-gray-400 py-16 font-bold italic text-sm";
+          const cityName = gameState.cities[gameState.currentCity]?.name || gameState.currentCity;
+          empty.textContent = currentChatRoom === "city"
+            ? `No messages yet in ${cityName}. Start the conversation!`
+            : "No global messages yet. Say hi to everyone!";
           chatContainer.appendChild(empty);
-          return;
+        } else {
+          messages.forEach((message) => addChatMessage(message));
+          chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        messages.forEach((message) => addChatMessage(message));
+        // Start bot chat simulation
+        startBotChat();
+
+        // Update online count with a simulated number
+        const onlineEl = document.getElementById("online-count");
+        if (onlineEl) {
+          const base = currentChatRoom === "city" ? 8 : 47;
+          onlineEl.textContent = `${base + Math.floor(Math.random() * 12)} online`;
+        }
+        const statOnline = document.getElementById("comm-stat-online");
+        if (statOnline) statOnline.textContent = `${47 + Math.floor(Math.random() * 30)}`;
       }
       function listenForWorldFeed() {
         /* Firebase implementation */
@@ -7045,7 +7289,7 @@
         }
 
         if (gameState.tradeMarket.offers.length === 0) {
-          list.innerHTML = `<div class="text-white/70 italic py-8 text-center font-bold">No active deals right now.</div>`;
+          list.innerHTML = `<div class="text-gray-400 italic py-8 text-center font-bold text-sm">No active deals right now.</div>`;
           return;
         }
 
@@ -7055,22 +7299,23 @@
             offer.type === "buySupply"
               ? gameState.kebabs >= offer.price
               : gameState.supply[offer.resource].stock >= offer.amount;
-          const actionText = offer.type === "buySupply" ? "BUY" : "SELL";
-          const desc =
-            offer.type === "buySupply"
-              ? `Get ${offer.amount} ${offer.resource} for ${offer.price} 🥙`
-              : `Sell ${offer.amount} ${offer.resource} for ${offer.price} 🥙`;
+          const isBuy = offer.type === "buySupply";
+          const actionText = isBuy ? "BUY" : "SELL";
+          const desc = isBuy
+            ? `Get ${offer.amount} ${offer.resource} for ${offer.price} 🥙`
+            : `Sell ${offer.amount} ${offer.resource} for ${offer.price} 🥙`;
 
           const row = document.createElement("div");
-          row.className = "bg-white/15 border border-white/20 rounded-2xl p-4";
+          row.className = `flex items-center justify-between gap-3 p-3 rounded-2xl border-2 transition-all ${canExecute ? "border-blue-100 bg-blue-50 hover:bg-blue-100" : "border-gray-100 bg-gray-50 opacity-60"}`;
           row.innerHTML = `
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">${offer.icon}</span>
               <div>
-                <div class="font-black text-lg">${offer.icon} ${actionText} DEAL</div>
-                <div class="text-sm text-blue-100 font-semibold">${desc}</div>
+                <div class="font-black text-sm text-gray-800">${actionText} ${offer.resource}</div>
+                <div class="text-xs font-semibold text-gray-500">${desc}</div>
               </div>
-              <button class="px-4 py-2 rounded-xl font-black text-sm transition-all ${canExecute ? "bg-white text-blue-700 hover:bg-blue-50" : "bg-white/30 text-white/70 cursor-not-allowed"}" ${canExecute ? "" : "disabled"}>EXECUTE</button>
             </div>
+            <button class="px-3 py-1.5 rounded-xl font-black text-xs transition-all ${canExecute ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-300 text-gray-500 cursor-not-allowed"}" ${canExecute ? "" : "disabled"}>${actionText}</button>
           `;
 
           const button = row.querySelector("button");
@@ -7752,68 +7997,134 @@
       window.switchChatRoom = function (room) {
         if (room !== "global" && room !== "city") return;
         currentChatRoom = room;
-        const roomName =
-          room === "city"
-            ? `${getCityProfile(gameState.currentCity).name} City Room`
-            : "Global Chat";
+        const cityName = gameState.cities[gameState.currentCity]?.name || gameState.currentCity;
+        const roomName = room === "city" ? `${cityName} City` : "Global Chat";
         const roomNameEl = document.getElementById("current-room-name");
         if (roomNameEl) roomNameEl.textContent = roomName;
 
         const roomButtons = document.querySelectorAll(".room-btn");
         roomButtons.forEach((btn) => {
-          const isActive =
-            (room === "global" && btn.textContent.includes("Global")) ||
-            (room === "city" && btn.textContent.includes("City"));
-          btn.classList.toggle("active", isActive);
+          const isGlobal = btn.textContent.includes("Global");
+          const isActive = (room === "global" && isGlobal) || (room === "city" && !isGlobal);
           if (isActive) {
-            btn.classList.remove(
-              "bg-white",
-              "text-gray-600",
-              "border",
-              "border-gray-200",
-            );
-            btn.classList.add("bg-orange-500", "text-white");
+            btn.classList.remove("bg-white", "text-gray-600", "border", "border-gray-200");
+            btn.classList.add("bg-orange-500", "text-white", "shadow-md");
           } else {
-            btn.classList.remove("bg-orange-500", "text-white");
-            btn.classList.add(
-              "bg-white",
-              "text-gray-600",
-              "border",
-              "border-gray-200",
-            );
+            btn.classList.remove("bg-orange-500", "text-white", "shadow-md");
+            btn.classList.add("bg-white", "text-gray-600", "border", "border-gray-200");
           }
         });
 
         listenForChat();
-        showNotification(`Switched to ${roomName}`, "info");
       };
 
       // Local chat messages storage
-      let localChatMessagesByRoom = {
-        global: [],
-      };
+      let localChatMessagesByRoom = { global: [] };
       let selectedTargetPlayer = null;
+      let _chatMessageCount = 0;
+      let _chatCooldownUntil = 0;
+      let _botChatInterval = null;
+
+      // Simulated bot messages to make chat feel alive
+      const BOT_MESSAGES = {
+        global: [
+          { username: "DonerKing", text: "Just hit 1M kebabs! 🎉" },
+          { username: "WrapWizard", text: "Anyone else getting the heatwave bonus?" },
+          { username: "GrillNinja", text: "Tokyo unlock is insane, worth every kebab" },
+          { username: "SauceQueen", text: "Pro tip: stack marketing + VIP visitor for 6x income 🔥" },
+          { username: "KebabLord99", text: "Prestige 3 and never looking back" },
+          { username: "SpiceTrader", text: "The mine game is rigged I swear 😂" },
+          { username: "MeatMaster", text: "Supply rush just saved me, perfect timing" },
+          { username: "WrapWizard", text: "Daily quests reset, let's gooo" },
+          { username: "GrillNinja", text: "Anyone want to trade bread? I'm drowning in it" },
+          { username: "DonerKing", text: "KebabJack blackjack payout is so satisfying" },
+        ],
+        city: [
+          { username: "LocalChef", text: "This city is popping off today 🌆" },
+          { username: "CityRival", text: "Watch out, I'm climbing the ranks fast" },
+          { username: "StreetVendor", text: "Festival event incoming, get ready!" },
+          { username: "LocalChef", text: "Anyone else notice the reputation boost?" },
+          { username: "CityRival", text: "Aggressive mode is paying off big time" },
+        ],
+      };
+
+      function startBotChat() {
+        if (_botChatInterval) return;
+        // Seed with a couple of messages immediately
+        const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+        const pool = currentChatRoom === "city" ? BOT_MESSAGES.city : BOT_MESSAGES.global;
+        if (!localChatMessagesByRoom[roomKey] || localChatMessagesByRoom[roomKey].length === 0) {
+          const seed = pool.slice(0, 3).map((m, i) => ({
+            ...m, timestamp: Date.now() - (3 - i) * 45000, isBot: true,
+          }));
+          localChatMessagesByRoom[roomKey] = seed;
+        }
+        // Post a new bot message every 18-40 seconds
+        _botChatInterval = setInterval(() => {
+          const rKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+          const msgs = currentChatRoom === "city" ? BOT_MESSAGES.city : BOT_MESSAGES.global;
+          const msg = msgs[Math.floor(Math.random() * msgs.length)];
+          const full = { ...msg, timestamp: Date.now(), isBot: true };
+          if (!localChatMessagesByRoom[rKey]) localChatMessagesByRoom[rKey] = [];
+          localChatMessagesByRoom[rKey].push(full);
+          // Only show if community tab is visible
+          const commTab = document.getElementById("community-tab");
+          if (commTab && !commTab.classList.contains("hidden")) {
+            addChatMessage(full);
+          }
+        }, 18000 + Math.random() * 22000);
+      }
 
       window.handleChatSubmit = function (event) {
         event.preventDefault();
         const input = document.getElementById("chat-input");
-        if (input && input.value.trim()) {
-          const roomKey =
-            currentChatRoom === "city"
-              ? `city_${gameState.currentCity}`
-              : "global";
-          if (!localChatMessagesByRoom[roomKey]) {
-            localChatMessagesByRoom[roomKey] = [];
-          }
-          const message = {
-            username: gameState.username || "Guest",
-            text: input.value.trim(),
-            timestamp: Date.now(),
-            room: roomKey,
-          };
-          localChatMessagesByRoom[roomKey].push(message);
-          addChatMessage(message);
-          input.value = "";
+        const cooldownEl = document.getElementById("chat-cooldown-timer");
+        if (!input || !input.value.trim()) return;
+
+        // 3-second cooldown between messages
+        if (Date.now() < _chatCooldownUntil) {
+          const left = Math.ceil((_chatCooldownUntil - Date.now()) / 1000);
+          if (cooldownEl) cooldownEl.textContent = `Wait ${left}s...`;
+          return;
+        }
+
+        const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+        if (!localChatMessagesByRoom[roomKey]) localChatMessagesByRoom[roomKey] = [];
+
+        const message = {
+          username: gameState.username || "Guest",
+          text: input.value.trim(),
+          timestamp: Date.now(),
+          room: roomKey,
+          isMe: true,
+        };
+        localChatMessagesByRoom[roomKey].push(message);
+        addChatMessage(message);
+        input.value = "";
+        _chatCooldownUntil = Date.now() + 3000;
+        _chatMessageCount++;
+
+        // Update message counter
+        const counter = document.getElementById("comm-stat-messages");
+        if (counter) counter.textContent = _chatMessageCount;
+
+        // Cooldown UI
+        if (cooldownEl) {
+          cooldownEl.textContent = "Sending...";
+          setTimeout(() => { if (cooldownEl) cooldownEl.textContent = ""; }, 3000);
+        }
+
+        // Simulate a bot reply sometimes
+        if (Math.random() < 0.4) {
+          const pool = currentChatRoom === "city" ? BOT_MESSAGES.city : BOT_MESSAGES.global;
+          const reply = pool[Math.floor(Math.random() * pool.length)];
+          setTimeout(() => {
+            const rKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+            const full = { ...reply, timestamp: Date.now(), isBot: true };
+            if (!localChatMessagesByRoom[rKey]) localChatMessagesByRoom[rKey] = [];
+            localChatMessagesByRoom[rKey].push(full);
+            addChatMessage(full);
+          }, 1500 + Math.random() * 3000);
         }
       };
 
@@ -7821,28 +8132,36 @@
         const chatContainer = document.getElementById("chat-messages");
         if (!chatContainer) return;
 
-        // Remove "Tuning into frequency..." message if it exists
-        const placeholder = chatContainer.querySelector(
-          ".text-center.text-gray-400",
-        );
+        // Remove placeholder
+        const placeholder = chatContainer.querySelector(".text-center.text-gray-400");
         if (placeholder) placeholder.remove();
 
+        const isMe = message.isMe || message.username === (gameState.username || "Guest");
+        const time = new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
         const messageDiv = document.createElement("div");
-        messageDiv.className =
-          "bg-white/70 rounded-xl p-3 border border-orange-100 animate-fade-in";
-        const time = new Date(message.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        messageDiv.innerHTML = `
-          <div class="flex justify-between items-start">
-            <span class="font-bold text-orange-600 text-sm">${message.username}</span>
-            <span class="text-xs text-gray-400">${time}</span>
-          </div>
-          <div class="text-gray-700 mt-1">${message.text}</div>
-        `;
+        messageDiv.className = `flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`;
+        messageDiv.innerHTML = isMe
+          ? `<div class="max-w-[80%] bg-orange-500 text-white rounded-2xl rounded-br-sm px-4 py-2.5 shadow-sm">
+               <div class="text-xs font-bold opacity-75 mb-0.5">You · ${time}</div>
+               <div class="text-sm font-medium">${escapeHtml(message.text)}</div>
+             </div>`
+          : `<div class="max-w-[80%]">
+               <div class="text-xs font-bold text-orange-600 mb-0.5 ml-1">${escapeHtml(message.username)}</div>
+               <div class="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 shadow-sm border border-gray-100">
+                 <div class="text-sm text-gray-700 font-medium">${escapeHtml(message.text)}</div>
+                 <div class="text-[10px] text-gray-400 mt-0.5 text-right">${time}</div>
+               </div>
+             </div>`;
+
         chatContainer.appendChild(messageDiv);
+        // Keep max 50 messages
+        while (chatContainer.children.length > 50) chatContainer.removeChild(chatContainer.firstChild);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
       }
 
       // Trade and PvP stubs
@@ -8249,6 +8568,7 @@
         renderCities();
         renderCityContracts();
         renderMenu();
+        renderSupply();
         updateLeaderboard();
         refreshTradeMarket(true);
         renderTradeMarket();
@@ -8260,25 +8580,71 @@
         }
         updateDisplay();
         updateAuthUI();
-        // Highlight default tab
+        // Highlight default tab (desktop + mobile)
         const defaultTab = document.querySelector('[data-tab="restaurants"]');
         if (defaultTab) {
           defaultTab.classList.remove("bg-gray-100", "text-gray-600");
           defaultTab.classList.add("bg-orange-500", "text-white");
         }
-        if (firebaseEnabled) listenForChat();
+        const defaultMobileBtn = document.querySelector('.mobile-bottom-nav button[data-tab="restaurants"]');
+        if (defaultMobileBtn) defaultMobileBtn.classList.add('active');
+        listenForChat();
         console.log("Initialization complete");
 
         lastFrameTime = Date.now();
         incomeCache = calculateIncomeBreakdown();
 
+        // Start simulation and render loops now that DOM + state are ready
+        if (!_gameLoopInterval) _gameLoopInterval = setInterval(gameLoop, SIM_TICK_MS);
+        if (!_renderLoopInterval) _renderLoopInterval = setInterval(renderLoop, RENDER_TICK_MS);
+
         // Auto-save every 30 seconds
         setInterval(autoSave, 30000);
       }
 
-      // Start simulation and rendering loops
-      setInterval(gameLoop, SIM_TICK_MS);
-      setInterval(renderLoop, RENDER_TICK_MS);
+      // Loop interval handles — declared before initGame so they're in scope
+      let _gameLoopInterval = null;
+      let _renderLoopInterval = null;
+
+      function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+        const target = document.getElementById(tabName + '-tab');
+        if (target) target.classList.remove('hidden');
+
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('bg-orange-500', 'text-white');
+          b.classList.add('bg-gray-100', 'text-gray-600');
+        });
+        document.querySelectorAll(`.tab-btn[data-tab="${tabName}"]`).forEach(b => {
+          b.classList.remove('bg-gray-100', 'text-gray-600');
+          b.classList.add('bg-orange-500', 'text-white');
+        });
+
+        document.querySelectorAll('.mobile-bottom-nav button').forEach(b => {
+          b.classList.remove('active');
+        });
+        document.querySelectorAll(`.mobile-bottom-nav button[data-tab="${tabName}"]`).forEach(b => {
+          b.classList.add('active');
+        });
+
+        // Scroll to tab content area
+        const tabContent = document.getElementById('tabContent');
+        if (tabContent) {
+          tabContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Render tab-specific content
+        if (tabName === 'restaurants') renderRestaurants();
+        if (tabName === 'menu') renderMenu();
+        if (tabName === 'supply') renderSupply();
+        if (tabName === 'cities') { renderCities(); renderCityContracts(); }
+        if (tabName === 'community') {
+          updateLeaderboard();
+          listenForChat();
+          refreshTradeMarket();
+          renderTradeMarket();
+        }
+      }
 
       // Run initialization when DOM is ready with slight delay to ensure elements are parsed
       function startGame() {
@@ -8297,5 +8663,33 @@
         }
       });
     </script>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-bottom-nav">
+      <button data-tab="restaurants" class="active">
+        <span class="nav-icon">🏪</span>
+        <span>Shop</span>
+      </button>
+      <button data-tab="menu">
+        <span class="nav-icon">📋</span>
+        <span>Menu</span>
+      </button>
+      <button data-tab="supply">
+        <span class="nav-icon">🚚</span>
+        <span>Supply</span>
+      </button>
+      <button data-tab="cities">
+        <span class="nav-icon">🌍</span>
+        <span>Cities</span>
+      </button>
+      <button data-tab="games">
+        <span class="nav-icon">🎮</span>
+        <span>Games</span>
+      </button>
+      <button data-tab="community">
+        <span class="nav-icon">🤝</span>
+        <span>Social</span>
+      </button>
+    </div>
   </body>
 </html>
