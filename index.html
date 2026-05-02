@@ -1623,11 +1623,12 @@
 
               <!-- World Feed -->
               <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-5">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-5 flex justify-between items-center">
                   <h3 class="text-xl font-black text-white flex items-center gap-2">📡 World Feed</h3>
+                  <span class="text-xs text-indigo-200 font-bold">Live Events</span>
                 </div>
                 <div id="world-feed" class="p-4 space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar">
-                  <div class="text-gray-300 italic text-center py-4 text-sm">Scanning world events...</div>
+                  <div class="text-gray-400 italic text-center py-4 text-sm font-bold">Scanning world events...</div>
                 </div>
               </div>
             </div>
@@ -1647,6 +1648,17 @@
                 <div class="flex gap-2">
                   <button onclick="switchChatRoom('global')" class="room-btn flex-1 bg-orange-500 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm">🌍 Global</button>
                   <button onclick="switchChatRoom('city')" class="room-btn flex-1 bg-white text-gray-600 border border-gray-200 py-2 rounded-xl text-xs font-bold transition-all hover:bg-orange-50">🏙️ City</button>
+                </div>
+                <!-- Filter Bar -->
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    id="chat-filter-input"
+                    placeholder="🔍 Filter messages..."
+                    oninput="filterChatMessages(this.value)"
+                    class="flex-1 px-3 py-1.5 rounded-xl bg-white border border-gray-200 focus:border-orange-400 focus:outline-none text-xs font-medium transition-all"
+                  />
+                  <div class="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1.5 rounded-xl whitespace-nowrap" id="chat-clear-timer">Clears in 10:00</div>
                 </div>
               </div>
 
@@ -1811,8 +1823,10 @@
       // ============================================
       // FIREBASE BACKEND CONFIGURATION
       // ============================================
-      // To enable real multiplayer, go to console.firebase.google.com,
-      // create a project, and paste your web app config here:
+      // To enable real multiplayer chat, deploy the Firestore rules:
+      //   firebase deploy --only firestore:rules
+      // See firestore.rules in the project root.
+      // ============================================
       const firebaseConfig = {
         apiKey: "AIzaSyCy2Kp2DaqBdLhn_0QGIrBddna8MbzYp28",
         authDomain: "kebab-clicker-99f4d.firebaseapp.com",
@@ -6437,48 +6451,62 @@
       let currentUser = null;
 
       // Sync local username if Firebase is off
+      // Detect mobile/tablet to choose the right auth flow
+      const _isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+
       window.loginWithGoogle = function () {
         if (firebaseEnabled) {
           const provider = new firebase.auth.GoogleAuthProvider();
-          auth.signInWithPopup(provider).catch((e) => {
-            console.error("Login Error:", e);
-            if (
-              e.code === "auth/unauthorized-domain" ||
-              e.code === "auth/operation-not-supported-in-this-environment" ||
-              e.message.includes("Cross-Origin-Opener-Policy")
-            ) {
-              // Popup blocked — fall back to redirect flow
-              showNotification("Redirecting to Google sign-in...", "info");
-              auth.signInWithRedirect(provider).catch((re) => {
-                showNotification("Login failed: " + re.message, "error");
-              });
-            } else {
-              showNotification("Login failed: " + e.message, "error");
-            }
-          });
+          provider.setCustomParameters({ prompt: "select_account" });
+
+          if (_isMobile) {
+            // Mobile: always use redirect — popups are blocked by Google policies on phones
+            showNotification("Redirecting to Google sign-in...", "info");
+            auth.signInWithRedirect(provider).catch((e) => {
+              showNotification("Sign-in failed: " + e.message, "error");
+            });
+          } else {
+            // Desktop: try popup first, fall back to redirect if blocked
+            auth.signInWithPopup(provider).catch((e) => {
+              if (
+                e.code === "auth/popup-blocked" ||
+                e.code === "auth/popup-closed-by-user" ||
+                e.code === "auth/unauthorized-domain" ||
+                e.code === "auth/operation-not-supported-in-this-environment" ||
+                e.message.includes("Cross-Origin-Opener-Policy")
+              ) {
+                showNotification("Redirecting to Google sign-in...", "info");
+                auth.signInWithRedirect(provider).catch((re) => {
+                  showNotification("Sign-in failed: " + re.message, "error");
+                });
+              } else {
+                showNotification("Sign-in failed: " + e.message, "error");
+              }
+            });
+          }
           return;
         }
+        // Local mode fallback
         const username = prompt("Enter username:");
-        if (username) {
-          gameState.username = username;
+        if (username && username.trim()) {
+          gameState.username = username.trim();
           updateAuthUI();
-          showNotification(
-            `Welcome back, ${username}! (Local Mode)`,
-            "success",
-          );
+          showNotification(`Welcome, ${gameState.username}! (Local Mode)`, "success");
           saveGame();
         }
       };
 
       if (firebaseEnabled) {
-        // Handle redirect sign-in result (from signInWithRedirect fallback)
+        // Always check for redirect result on page load (handles mobile redirect flow)
         auth.getRedirectResult().then((result) => {
           if (result && result.user) {
             showNotification(`Welcome, ${result.user.displayName || "Chef"}! ☁️`, "success");
           }
         }).catch((e) => {
-          if (e.code !== "auth/no-auth-event") {
-            console.error("Redirect result error:", e);
+          // Ignore "no pending redirect" — that's normal on non-redirect loads
+          if (e.code !== "auth/no-auth-event" && e.code !== "auth/null-user") {
+            console.warn("Redirect sign-in error:", e.code);
           }
         });
 
@@ -6558,6 +6586,7 @@
                 username: gameState.username,
                 kebabs: Math.floor(gameState.kebabs),
                 level: gameState.level,
+                currentCity: gameState.currentCity,
                 gameData: JSON.stringify(cloudState),
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
               },
@@ -7170,14 +7199,83 @@
         const chatContainer = document.getElementById("chat-messages");
         if (!chatContainer) return;
 
+        // Unsubscribe previous listener
+        if (_chatUnsubscribe) {
+          _chatUnsubscribe();
+          _chatUnsubscribe = null;
+        }
+
+        const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+        const cutoff = new Date(Date.now() - CHAT_CLEAR_INTERVAL_MS);
+
+        if (firebaseEnabled && db && !_chatFirebasePermissionDenied) {
+          // Probe with a cheap get() first to check permissions silently
+          db.collection("chat").doc(roomKey).collection("messages")
+            .limit(1)
+            .get()
+            .then(() => {
+              // Permission OK — set up real-time listener
+              chatContainer.innerHTML = `<div class="text-center text-gray-400 py-8 font-bold italic text-sm">Loading messages...</div>`;
+
+              _chatUnsubscribe = db.collection("chat").doc(roomKey).collection("messages")
+                .where("timestamp", ">", cutoff)
+                .orderBy("timestamp", "asc")
+                .limitToLast(60)
+                .onSnapshot((snapshot) => {
+                  chatContainer.innerHTML = "";
+                  if (snapshot.empty) {
+                    const cityName = gameState.cities[gameState.currentCity]?.name || gameState.currentCity;
+                    chatContainer.innerHTML = `<div class="text-center text-gray-400 py-16 font-bold italic text-sm">${
+                      currentChatRoom === "city"
+                        ? `No messages yet in ${cityName}. Start the conversation!`
+                        : "No messages yet. Say hi to everyone!"
+                    }</div>`;
+                  } else {
+                    snapshot.forEach((doc) => {
+                      const data = doc.data();
+                      const msg = {
+                        username: data.username || "Chef",
+                        text: data.text || "",
+                        timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : Date.now(),
+                        uid: data.uid,
+                        isMe: currentUser && data.uid === currentUser.uid,
+                      };
+                      addChatMessage(msg);
+                    });
+                  }
+                  updateOnlineCount();
+                }, (err) => {
+                  // Listener error after initial success — go local
+                  _chatUnsubscribe = null;
+                  _chatFirebasePermissionDenied = true;
+                  listenForChatLocal();
+                });
+            })
+            .catch((err) => {
+              // Permission denied or network error — go local silently
+              _chatFirebasePermissionDenied = true;
+              listenForChatLocal();
+            });
+        } else {
+          listenForChatLocal();
+        }
+
+        // Start clear timer
+        startChatClearTimer();
+      }
+
+      function listenForChatLocal() {
+        const chatContainer = document.getElementById("chat-messages");
+        if (!chatContainer) return;
+
         const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
         const messages = localChatMessagesByRoom[roomKey] || [];
 
         chatContainer.innerHTML = "";
         if (messages.length === 0) {
+          const cityName = gameState.cities[gameState.currentCity]?.name || gameState.currentCity;
           const empty = document.createElement("div");
           empty.className = "text-center text-gray-400 py-16 font-bold italic text-sm";
-          const cityName = gameState.cities[gameState.currentCity]?.name || gameState.currentCity;
           empty.textContent = currentChatRoom === "city"
             ? `No messages yet in ${cityName}. Start the conversation!`
             : "No global messages yet. Say hi to everyone!";
@@ -7187,7 +7285,7 @@
           chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Start bot chat simulation
+        // Start bot chat simulation in local mode
         startBotChat();
 
         // Update online count with a simulated number
@@ -7200,13 +7298,132 @@
         if (statOnline) statOnline.textContent = `${47 + Math.floor(Math.random() * 30)}`;
       }
       function listenForWorldFeed() {
-        /* Firebase implementation */
+        const feedDiv = document.getElementById("world-feed");
+        if (!feedDiv) return;
+
+        const worldEvents = [
+          { icon: "🏆", text: "DonerKing reached Prestige 5!" },
+          { icon: "🌍", text: "WrapWizard unlocked Tokyo!" },
+          { icon: "💰", text: "GrillNinja earned 1,000,000 kebabs!" },
+          { icon: "🎰", text: "SauceQueen won big at KebabJack!" },
+          { icon: "⚔️", text: "KebabLord99 raided a rival empire!" },
+          { icon: "🎉", text: "SpiceTrader hit Level 25!" },
+          { icon: "🔥", text: "MeatMaster achieved 500x combo!" },
+          { icon: "🌟", text: "A new Kebab Master has emerged!" },
+        ];
+
+        function renderFeed(events) {
+          feedDiv.innerHTML = "";
+          events.forEach((ev) => {
+            const row = document.createElement("div");
+            row.className = "flex items-center gap-2 text-xs font-medium text-gray-700 bg-white/60 rounded-xl px-3 py-2 border border-indigo-50";
+            row.innerHTML = `<span class="text-base">${ev.icon}</span><span>${escapeHtml(ev.text)}</span>`;
+            feedDiv.appendChild(row);
+          });
+        }
+
+        if (firebaseEnabled && db) {
+          // Listen for real leaderboard events
+          db.collection("players")
+            .orderBy("lastSeen", "desc")
+            .limit(8)
+            .get()
+            .then((snap) => {
+              const events = [];
+              snap.forEach((doc) => {
+                const p = doc.data();
+                if (p.username && p.kebabs) {
+                  events.push({ icon: "🥙", text: `${p.username} has ${Math.floor(p.kebabs).toLocaleString()} kebabs` });
+                }
+              });
+              if (events.length > 0) {
+                renderFeed(events);
+              } else {
+                renderFeed(worldEvents.slice(0, 5));
+              }
+            })
+            .catch(() => renderFeed(worldEvents.slice(0, 5)));
+        } else {
+          // Shuffle and show simulated events
+          const shuffled = [...worldEvents].sort(() => Math.random() - 0.5).slice(0, 5);
+          renderFeed(shuffled);
+          // Rotate events every 30 seconds
+          setInterval(() => {
+            const next = [...worldEvents].sort(() => Math.random() - 0.5).slice(0, 5);
+            renderFeed(next);
+          }, 30000);
+        }
       }
       function listenForCityActivity() {
-        /* Firebase implementation */
+        const bar = document.getElementById("city-activity-bar");
+        const pct = document.getElementById("city-activity-pct");
+        if (!bar || !pct) return;
+
+        if (firebaseEnabled && db) {
+          // Count players in the same city in last 10 minutes
+          const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+          db.collection("players")
+            .where("lastSeen", ">", cutoff)
+            .get()
+            .then((snap) => {
+              // Estimate city activity as fraction of online players
+              const total = Math.max(1, snap.size);
+              let cityCount = 0;
+              snap.forEach((doc) => {
+                const d = doc.data();
+                if (d.currentCity === gameState.currentCity) cityCount++;
+              });
+              const activityPct = Math.min(100, Math.round((cityCount / total) * 100 + 20));
+              bar.style.width = activityPct + "%";
+              pct.textContent = activityPct + "%";
+              // Update community bonus based on activity
+              const bonus = 1 + (activityPct / 100) * 0.5;
+              gameState.communityBonus = bonus;
+              const bonusEl = document.getElementById("community-bonus-val");
+              if (bonusEl) bonusEl.textContent = bonus.toFixed(2) + "x";
+            })
+            .catch(() => {
+              // Simulated fallback
+              const simPct = 20 + Math.floor(Math.random() * 60);
+              bar.style.width = simPct + "%";
+              pct.textContent = simPct + "%";
+            });
+        } else {
+          // Simulated activity
+          const simPct = 20 + Math.floor(Math.random() * 60);
+          bar.style.width = simPct + "%";
+          pct.textContent = simPct + "%";
+        }
       }
       function updateOnlineCount() {
-        /* Firebase implementation */
+        if (firebaseEnabled && db) {
+          // Count players seen in last 5 minutes
+          const cutoff = new Date(Date.now() - 5 * 60 * 1000);
+          db.collection("players")
+            .where("lastSeen", ">", cutoff)
+            .get()
+            .then((snap) => {
+              const count = snap.size || 1;
+              const onlineEl = document.getElementById("online-count");
+              if (onlineEl) onlineEl.textContent = `${count} online`;
+              const statOnline = document.getElementById("comm-stat-online");
+              if (statOnline) statOnline.textContent = String(count);
+            })
+            .catch(() => {
+              // Fallback to simulated count
+              const simCount = 47 + Math.floor(Math.random() * 30);
+              const onlineEl = document.getElementById("online-count");
+              if (onlineEl) onlineEl.textContent = `${simCount} online`;
+              const statOnline = document.getElementById("comm-stat-online");
+              if (statOnline) statOnline.textContent = String(simCount);
+            });
+        } else {
+          const simCount = 47 + Math.floor(Math.random() * 30);
+          const onlineEl = document.getElementById("online-count");
+          if (onlineEl) onlineEl.textContent = `${simCount} online`;
+          const statOnline = document.getElementById("comm-stat-online");
+          if (statOnline) statOnline.textContent = String(simCount);
+        }
       }
       function openSocialModal(id, name) {
         const modal = document.getElementById("social-modal");
@@ -8018,14 +8235,105 @@
         listenForChat();
       };
 
+      // ============================================
+      // CHAT FILTER - profanity / spam
+      // ============================================
+      const CHAT_BANNED_WORDS = [
+        "fuck","shit","ass","bitch","cunt","dick","pussy","cock","nigger","nigga",
+        "faggot","fag","retard","whore","slut","bastard","damn","crap","piss",
+      ];
+      function filterChatText(text) {
+        let filtered = text;
+        CHAT_BANNED_WORDS.forEach((word) => {
+          const re = new RegExp(`\\b${word}\\b`, "gi");
+          filtered = filtered.replace(re, "*".repeat(word.length));
+        });
+        return filtered;
+      }
+      function isChatSpam(text) {
+        // Block all-caps long messages, repeated chars, or URLs
+        if (/https?:\/\//i.test(text)) return true;
+        if (text.length > 5 && text === text.toUpperCase() && /[A-Z]{5,}/.test(text)) return false; // allow short caps
+        if (/(.)\1{5,}/.test(text)) return true; // 6+ repeated chars
+        return false;
+      }
+
+      // ============================================
+      // CHAT CLEAR TIMER (10 minutes)
+      // ============================================
+      const CHAT_CLEAR_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+      let _chatClearAt = Date.now() + CHAT_CLEAR_INTERVAL_MS;
+      let _chatClearTimerInterval = null;
+
+      function startChatClearTimer() {
+        if (_chatClearTimerInterval) clearInterval(_chatClearTimerInterval);
+        _chatClearAt = Date.now() + CHAT_CLEAR_INTERVAL_MS;
+        _chatClearTimerInterval = setInterval(() => {
+          const remaining = Math.max(0, _chatClearAt - Date.now());
+          const mins = Math.floor(remaining / 60000);
+          const secs = Math.floor((remaining % 60000) / 1000);
+          const timerEl = document.getElementById("chat-clear-timer");
+          if (timerEl) timerEl.textContent = `Clears in ${mins}:${String(secs).padStart(2, "0")}`;
+          if (remaining <= 0) {
+            clearChatMessages();
+            _chatClearAt = Date.now() + CHAT_CLEAR_INTERVAL_MS;
+          }
+        }, 1000);
+      }
+
+      function clearChatMessages() {
+        // Clear local storage
+        const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
+        localChatMessagesByRoom[roomKey] = [];
+        // Clear Firebase messages older than 10 min
+        if (firebaseEnabled && db) {
+          const cutoff = new Date(Date.now() - CHAT_CLEAR_INTERVAL_MS);
+          db.collection("chat").doc(roomKey).collection("messages")
+            .where("timestamp", "<", cutoff)
+            .get()
+            .then((snap) => {
+              const batch = db.batch();
+              snap.forEach((doc) => batch.delete(doc.ref));
+              return batch.commit();
+            })
+            .catch(() => {});
+        }
+        // Clear UI
+        const chatContainer = document.getElementById("chat-messages");
+        if (chatContainer) {
+          chatContainer.innerHTML = `<div class="text-center text-gray-400 py-8 font-bold italic text-sm">Chat cleared. Fresh start! 🧹</div>`;
+        }
+        showNotification("💬 Chat cleared for a fresh start!", "info");
+      }
+
+      // ============================================
+      // CHAT FILTER UI
+      // ============================================
+      window.filterChatMessages = function (query) {
+        const chatContainer = document.getElementById("chat-messages");
+        if (!chatContainer) return;
+        const q = query.toLowerCase().trim();
+        const messages = chatContainer.querySelectorAll(".chat-msg");
+        messages.forEach((msg) => {
+          if (!q) {
+            msg.style.display = "";
+          } else {
+            const text = msg.textContent.toLowerCase();
+            msg.style.display = text.includes(q) ? "" : "none";
+          }
+        });
+      };
+
       // Local chat messages storage
       let localChatMessagesByRoom = { global: [] };
       let selectedTargetPlayer = null;
       let _chatMessageCount = 0;
       let _chatCooldownUntil = 0;
       let _botChatInterval = null;
+      let _chatUnsubscribe = null; // Firebase listener unsubscribe
+      let _chatFirebasePermissionDenied = false; // set true if Firestore chat rules block us
 
-      // Simulated bot messages to make chat feel alive
+      // Simulated bot messages to make chat feel alive when Firebase is off
       const BOT_MESSAGES = {
         global: [
           { username: "DonerKing", text: "Just hit 1M kebabs! 🎉" },
@@ -8088,18 +8396,66 @@
           return;
         }
 
+        const rawText = input.value.trim();
+
+        // Spam check
+        if (isChatSpam(rawText)) {
+          showNotification("Message looks like spam. Try again!", "error");
+          return;
+        }
+
+        // Filter profanity
+        const filteredText = filterChatText(rawText);
+
         const roomKey = currentChatRoom === "city" ? `city_${gameState.currentCity}` : "global";
         if (!localChatMessagesByRoom[roomKey]) localChatMessagesByRoom[roomKey] = [];
 
         const message = {
           username: gameState.username || "Guest",
-          text: input.value.trim(),
+          text: filteredText,
           timestamp: Date.now(),
           room: roomKey,
           isMe: true,
         };
-        localChatMessagesByRoom[roomKey].push(message);
-        addChatMessage(message);
+
+        // Send to Firebase if available
+        if (firebaseEnabled && db && !_chatFirebasePermissionDenied) {
+          const msgData = {
+            username: gameState.username || "Guest",
+            text: filteredText,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            uid: currentUser ? currentUser.uid : "guest_" + Math.random().toString(36).substr(2, 6),
+            room: roomKey,
+          };
+          db.collection("chat").doc(roomKey).collection("messages")
+            .add(msgData)
+            .catch((e) => {
+              if (e.code === "permission-denied") {
+                _chatFirebasePermissionDenied = true;
+                // Show locally since Firebase rejected it
+                localChatMessagesByRoom[roomKey].push(message);
+                addChatMessage(message);
+              }
+            });
+          // Also clean up old messages (older than 10 min) on each send
+          const cutoff = new Date(Date.now() - CHAT_CLEAR_INTERVAL_MS);
+          db.collection("chat").doc(roomKey).collection("messages")
+            .where("timestamp", "<", cutoff)
+            .get()
+            .then((snap) => {
+              if (snap.size > 0) {
+                const batch = db.batch();
+                snap.forEach((doc) => batch.delete(doc.ref));
+                return batch.commit();
+              }
+            })
+            .catch(() => {});
+        } else {
+          // Local mode: add directly
+          localChatMessagesByRoom[roomKey].push(message);
+          addChatMessage(message);
+        }
+
         input.value = "";
         _chatCooldownUntil = Date.now() + 3000;
         _chatMessageCount++;
@@ -8114,8 +8470,8 @@
           setTimeout(() => { if (cooldownEl) cooldownEl.textContent = ""; }, 3000);
         }
 
-        // Simulate a bot reply sometimes
-        if (Math.random() < 0.4) {
+        // Simulate a bot reply sometimes (local mode only)
+        if (!firebaseEnabled && Math.random() < 0.4) {
           const pool = currentChatRoom === "city" ? BOT_MESSAGES.city : BOT_MESSAGES.global;
           const reply = pool[Math.floor(Math.random() * pool.length)];
           setTimeout(() => {
@@ -8136,11 +8492,13 @@
         const placeholder = chatContainer.querySelector(".text-center.text-gray-400");
         if (placeholder) placeholder.remove();
 
-        const isMe = message.isMe || message.username === (gameState.username || "Guest");
+        const myUsername = gameState.username || "Guest";
+        const isMe = message.isMe || message.username === myUsername ||
+          (currentUser && message.uid === currentUser.uid);
         const time = new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
         const messageDiv = document.createElement("div");
-        messageDiv.className = `flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`;
+        messageDiv.className = `chat-msg flex ${isMe ? "justify-end" : "justify-start"} animate-fade-in`;
         messageDiv.innerHTML = isMe
           ? `<div class="max-w-[80%] bg-orange-500 text-white rounded-2xl rounded-br-sm px-4 py-2.5 shadow-sm">
                <div class="text-xs font-bold opacity-75 mb-0.5">You · ${time}</div>
@@ -8155,9 +8513,15 @@
              </div>`;
 
         chatContainer.appendChild(messageDiv);
-        // Keep max 50 messages
-        while (chatContainer.children.length > 50) chatContainer.removeChild(chatContainer.firstChild);
+        // Keep max 60 messages visible
+        while (chatContainer.children.length > 60) chatContainer.removeChild(chatContainer.firstChild);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Re-apply filter if active
+        const filterInput = document.getElementById("chat-filter-input");
+        if (filterInput && filterInput.value.trim()) {
+          filterChatMessages(filterInput.value);
+        }
       }
 
       function escapeHtml(str) {
@@ -8589,6 +8953,9 @@
         const defaultMobileBtn = document.querySelector('.mobile-bottom-nav button[data-tab="restaurants"]');
         if (defaultMobileBtn) defaultMobileBtn.classList.add('active');
         listenForChat();
+        startChatClearTimer();
+        listenForWorldFeed();
+        updateOnlineCount();
         console.log("Initialization complete");
 
         lastFrameTime = Date.now();
@@ -8641,6 +9008,9 @@
         if (tabName === 'community') {
           updateLeaderboard();
           listenForChat();
+          listenForWorldFeed();
+          listenForCityActivity();
+          updateOnlineCount();
           refreshTradeMarket();
           renderTradeMarket();
         }

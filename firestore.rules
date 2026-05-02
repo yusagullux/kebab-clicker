@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Players collection - authenticated users can read all, write their own
+    match /players/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Chat collection - anyone can read, authenticated users can write
+    // Messages auto-expire (cleaned up by the app every 10 minutes)
+    match /chat/{room}/messages/{messageId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['username', 'text', 'timestamp', 'uid', 'room'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 200
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // Allow the app to delete old chat messages (cleanup)
+    match /chat/{room} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
