@@ -7,16 +7,49 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>Kebab Clicker Empire - Global MMO</title>
+
+    <!-- PWA & Mobile -->
+    <meta name="theme-color" content="#f97316" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Kebab Clicker" />
+
+    <!-- SEO -->
+    <meta name="description" content="Build your kebab empire! Click, upgrade, and compete with players worldwide in this addictive idle MMO." />
+    <meta name="keywords" content="kebab clicker, idle game, clicker game, mmo, kebab empire" />
+
+    <!-- Open Graph (Facebook, WhatsApp, Discord) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Kebab Clicker Empire - Global MMO" />
+    <meta property="og:description" content="Build your kebab empire! Click, upgrade, and compete with players worldwide." />
+    <meta property="og:url" content="https://kebab-clicker-99f4d.web.app" />
+    <meta property="og:image" content="https://kebab-clicker-99f4d.web.app/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Kebab Clicker Empire" />
+    <meta name="twitter:description" content="Build your kebab empire and compete globally!" />
+
+    <!-- Inline PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Kebab+Clicker+Empire%22%2C%22short_name%22%3A%22Kebab+Clicker%22%2C%22description%22%3A%22Build+your+kebab+empire+and+compete+globally%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23fff7ed%22%2C%22theme_color%22%3A%22%23f97316%22%2C%22orientation%22%3A%22portrait-primary%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg+xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'+viewBox%3D'0+0+100+100'%3E%3Ctext+y%3D'.9em'+font-size%3D'90'%3E%F0%9F%A5%99%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
+
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥙</text></svg>"
     />
+    <!-- Apple touch icon (home screen icon on iOS) -->
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23f97316%22/><text y=%22.85em%22 font-size=%2275%22 x=%2212%22>🥙</text></svg>"
+    />
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs — analytics loaded lazily after init -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+    <!-- analytics loaded on demand below, not blocking -->
     <style>
       @keyframes pulse {
         0%,
@@ -181,10 +214,14 @@
       .floating-kebab {
         position: fixed;
         font-size: 2rem;
-        opacity: 0.1;
+        opacity: 0.07;
         pointer-events: none;
         animation: floatBackground 6s ease-in-out infinite;
         z-index: 0;
+        will-change: transform;
+      }
+      @media (max-width: 768px) {
+        .floating-kebab { display: none; }
       }
 
       .shake {
@@ -458,17 +495,18 @@
           white-space: nowrap;
           transition: all 0.2s;
           min-height: 48px;
+          position: relative;
         }
 
         .mobile-bottom-nav button .nav-icon {
-          font-size: 1.25rem;
+          font-size: 1.4rem;
           line-height: 1;
         }
 
         .mobile-bottom-nav button.active,
         .mobile-bottom-nav button:active {
           color: #ea580c;
-          background: rgba(249, 115, 22, 0.08);
+          background: rgba(249, 115, 22, 0.1);
         }
 
         body {
@@ -734,6 +772,141 @@
           padding-top: calc(0.75rem + env(safe-area-inset-top, 0px)) !important;
         }
       }
+
+      /* Loading screen */
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: linear-gradient(135deg, #fff7ed, #fed7aa, #fef3c7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+      }
+      #loading-screen.hidden-screen {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #loading-screen .loading-kebab {
+        font-size: 5rem;
+        animation: pulse 1s ease-in-out infinite;
+      }
+      #loading-screen .loading-bar-track {
+        width: 200px;
+        height: 6px;
+        background: rgba(249,115,22,0.2);
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      #loading-screen .loading-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f97316, #ea580c);
+        border-radius: 9999px;
+        animation: loadingProgress 1.2s ease-in-out forwards;
+      }
+      @keyframes loadingProgress {
+        from { width: 0%; }
+        to   { width: 100%; }
+      }
+
+      /* Offline indicator */
+      #offline-indicator {
+        display: none;
+        position: fixed;
+        top: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9998;
+        background: #374151;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 1rem;
+        border-radius: 9999px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        pointer-events: none;
+      }
+      #offline-indicator.visible { display: block; }
+
+      /* Save-failed indicator */
+      #save-failed-indicator {
+        display: none;
+        position: fixed;
+        bottom: 5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9997;
+        background: #dc2626;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.4rem 1.1rem;
+        border-radius: 9999px;
+        box-shadow: 0 2px 8px rgba(220,38,38,0.4);
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      #save-failed-indicator.visible { display: block; }
+
+      /* Prestige confirm modal */
+      #prestige-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+      }
+      #prestige-modal.open { display: flex; }
+
+      /* Generic game modal base */
+      .game-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(6px);
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .game-modal.open { display: flex; }
+
+      /* Onboarding modal steps */
+      .onboarding-step { display: none; }
+      .onboarding-step.active { display: block; }
+
+      /* Story chapter cards */
+      .story-chapter {
+        transition: all 0.2s ease;
+      }
+      .story-chapter.locked {
+        opacity: 0.45;
+        filter: grayscale(1);
+      }
+
+      /* Daily streak panel */
+      #daily-streak-panel {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 2px solid #f59e0b;
+        border-radius: 1rem;
+        padding: 0.75rem 1rem;
+        margin-top: 0.75rem;
+      }
+
+      /* Streak flame animation */
+      @keyframes flameFlicker {
+        0%, 100% { transform: scale(1) rotate(-3deg); }
+        50%       { transform: scale(1.15) rotate(3deg); }
+      }
+      .streak-flame { animation: flameFlicker 0.8s ease-in-out infinite; display: inline-block; }
     </style>
   </head>
 
@@ -741,66 +914,215 @@
     class="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100"
     style="touch-action: manipulation"
   >
+    <!-- Loading screen — hidden once initGame() completes -->
+    <div id="loading-screen">
+      <div class="loading-kebab">🥙</div>
+      <div style="font-size:1.5rem;font-weight:900;color:#ea580c;letter-spacing:-0.02em;">Kebab Clicker Empire</div>
+      <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+      <div style="font-size:0.8rem;color:#9ca3af;font-weight:600;">Firing up the grill…</div>
+    </div>
+
+    <!-- Offline indicator -->
+    <div id="offline-indicator">📡 Offline — playing in local mode</div>
+
+    <!-- Save-failed indicator -->
+    <div id="save-failed-indicator">⚠️ Cloud save failed — progress saved locally</div>
+
+    <!-- Prestige confirmation modal -->
+    <div id="prestige-modal" role="dialog" aria-modal="true" aria-labelledby="prestige-modal-title">
+      <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+        <div class="text-5xl mb-3">🌟</div>
+        <h2 id="prestige-modal-title" class="text-2xl font-black text-purple-700 mb-2">Prestige Now?</h2>
+        <p id="prestige-modal-body" class="text-sm text-gray-600 mb-6 leading-relaxed"></p>
+        <div class="flex gap-3">
+          <button
+            id="prestige-modal-cancel"
+            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3 rounded-2xl transition-all"
+          >Cancel</button>
+          <button
+            id="prestige-modal-confirm"
+            class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-black py-3 rounded-2xl transition-all shadow-lg"
+          >Prestige!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy Policy modal -->
+    <div id="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title"
+      style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+      <div class="bg-white rounded-3xl shadow-2xl p-6 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="privacy-modal-title" class="text-xl font-black text-gray-800">Privacy Policy &amp; Terms</h2>
+          <button onclick="document.getElementById('privacy-modal').style.display='none'" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+        </div>
+        <div class="overflow-y-auto custom-scrollbar text-sm text-gray-600 space-y-4 pr-1">
+          <p class="text-xs text-gray-400 font-semibold">Last updated: May 2026</p>
+
+          <h3 class="font-black text-gray-800">What we collect</h3>
+          <p>When you sign in with Google, we store your Google display name and a unique user ID. We also store your game progress (kebab count, upgrades, city progress) in Firebase Firestore so it syncs across devices. We do not collect your email address, phone number, or any payment information.</p>
+
+          <h3 class="font-black text-gray-800">Chat messages</h3>
+          <p>Messages you send in the global or city chat are stored in Firestore and visible to all players. Messages are automatically deleted after 10 minutes. Do not share personal information in chat.</p>
+
+          <h3 class="font-black text-gray-800">How we use your data</h3>
+          <p>Your data is used solely to provide the game experience — syncing progress, showing your name on the leaderboard, and enabling multiplayer chat. We do not sell your data or use it for advertising.</p>
+
+          <h3 class="font-black text-gray-800">Third-party services</h3>
+          <p>This game uses <strong>Firebase</strong> (Google) for authentication, database, and hosting. Firebase's privacy policy applies: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener" class="text-orange-500 underline">firebase.google.com/support/privacy</a>.</p>
+
+          <h3 class="font-black text-gray-800">Data deletion</h3>
+          <p>You can delete your account data at any time using the "Reset Game" button in the Settings tab, which removes your Firestore document. You can also sign out to stop syncing.</p>
+
+          <h3 class="font-black text-gray-800">Age requirement</h3>
+          <p>This game is intended for players aged 13 and older. If you are under 13, please do not sign in or use the chat features.</p>
+
+          <h3 class="font-black text-gray-800">Terms of use</h3>
+          <p>By playing Kebab Clicker Empire you agree not to exploit bugs, use automated scripts, or attempt to manipulate the leaderboard. We reserve the right to reset or ban accounts that violate fair play. The game is provided as-is with no warranty.</p>
+
+          <h3 class="font-black text-gray-800">Contact</h3>
+          <p>Questions? Open an issue on the project repository or contact the developer directly.</p>
+        </div>
+        <button onclick="document.getElementById('privacy-modal').style.display='none'"
+          class="mt-5 w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-2xl transition-all">
+          Got it
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         ONBOARDING MODAL — shown once to new players
+    ══════════════════════════════════════════════════════════ -->
+    <div id="onboarding-modal" class="game-modal" role="dialog" aria-modal="true">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-2 overflow-hidden">
+        <!-- Progress dots -->
+        <div class="flex justify-center gap-2 pt-5 pb-1">
+          <span class="onboarding-dot w-2.5 h-2.5 rounded-full bg-orange-500 transition-all" data-step="0"></span>
+          <span class="onboarding-dot w-2.5 h-2.5 rounded-full bg-gray-200 transition-all" data-step="1"></span>
+          <span class="onboarding-dot w-2.5 h-2.5 rounded-full bg-gray-200 transition-all" data-step="2"></span>
+          <span class="onboarding-dot w-2.5 h-2.5 rounded-full bg-gray-200 transition-all" data-step="3"></span>
+        </div>
+        <div class="p-7">
+          <!-- Step 0 -->
+          <div class="onboarding-step active" data-step="0">
+            <div class="text-6xl text-center mb-4">🥙</div>
+            <h2 class="text-2xl font-black text-gray-800 text-center mb-3">Welcome to Kebab Clicker Empire!</h2>
+            <p class="text-gray-600 text-center leading-relaxed">Build the world's greatest kebab empire — one click at a time. Hire staff, unlock cities, and compete with players worldwide.</p>
+          </div>
+          <!-- Step 1 -->
+          <div class="onboarding-step" data-step="1">
+            <div class="text-6xl text-center mb-4">🛒</div>
+            <h2 class="text-2xl font-black text-gray-800 text-center mb-3">Click & Upgrade</h2>
+            <p class="text-gray-600 text-center leading-relaxed">Tap the big kebab to earn kebabs. Spend them in the <strong>Shop</strong> on staff and equipment to earn kebabs automatically — even while you sleep.</p>
+          </div>
+          <!-- Step 2 -->
+          <div class="onboarding-step" data-step="2">
+            <div class="text-6xl text-center mb-4">🚚</div>
+            <h2 class="text-2xl font-black text-gray-800 text-center mb-3">Manage Your Supplies</h2>
+            <p class="text-gray-600 text-center leading-relaxed">Every kebab needs <strong>meat, bread, and vegetables</strong>. Watch the supply bars — if they run out, your income drops. Restock in the <strong>Supply</strong> tab.</p>
+          </div>
+          <!-- Step 3 -->
+          <div class="onboarding-step" data-step="3">
+            <div class="text-6xl text-center mb-4">🌍</div>
+            <h2 class="text-2xl font-black text-gray-800 text-center mb-3">Expand Your Empire</h2>
+            <p class="text-gray-600 text-center leading-relaxed">Build reputation to unlock new cities — Berlin, London, New York, Tokyo. Each city has higher income and unique events. Sign in with Google to save your progress to the cloud!</p>
+          </div>
+        </div>
+        <div class="px-7 pb-7 flex gap-3">
+          <button id="onboarding-skip" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3 rounded-2xl transition-all text-sm">Skip</button>
+          <button id="onboarding-next" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-black py-3 rounded-2xl transition-all shadow-lg">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         STORY MODAL — read unlocked chapters
+    ══════════════════════════════════════════════════════════ -->
+    <div id="story-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-2 max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 id="story-modal-title" class="text-xl font-black text-gray-800 flex items-center gap-2">📖 Your Story</h2>
+          <button onclick="document.getElementById('story-modal').classList.remove('open')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
+        </div>
+        <div id="story-chapters-list" class="overflow-y-auto custom-scrollbar p-6 space-y-4 flex-1"></div>
+        <div class="p-4 border-t border-gray-100">
+          <button onclick="document.getElementById('story-modal').classList.remove('open')" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-2xl transition-all">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         RESET CONFIRM MODAL
+    ══════════════════════════════════════════════════════════ -->
+    <div id="reset-modal" class="game-modal" role="dialog" aria-modal="true">
+      <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+        <div class="text-5xl mb-3">⚠️</div>
+        <h2 class="text-2xl font-black text-red-600 mb-2">Reset Everything?</h2>
+        <p class="text-sm text-gray-600 mb-6 leading-relaxed">This will permanently delete all your progress — kebabs, upgrades, cities, and cloud data. <strong>This cannot be undone.</strong></p>
+        <div class="flex gap-3">
+          <button id="reset-modal-cancel" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3 rounded-2xl transition-all">Cancel</button>
+          <button id="reset-modal-confirm" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-2xl transition-all shadow-lg">Reset</button>
+        </div>
+      </div>
+    </div>
+
     <div
       id="notificationContainer"
       class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 pointer-events-none max-w-[92vw] w-[380px]"
     ></div>
+    <!-- In-app browser warning banner (shown when user tries to sign in from Instagram/Facebook/etc.) -->
+    <div
+      id="inapp-browser-banner"
+      style="display:none"
+      class="fixed top-0 left-0 right-0 z-[9999] bg-orange-600 text-white text-center text-sm font-bold px-4 py-3 shadow-lg"
+    >
+      ⚠️ Google sign-in doesn't work in this browser.
+      <br>
+      <span class="font-normal text-xs">Tap the <strong>⋯</strong> menu and choose <strong>"Open in Safari"</strong> or <strong>"Open in Chrome"</strong>.</span>
+      <button
+        onclick="document.getElementById('inapp-browser-banner').style.display='none'"
+        class="absolute top-2 right-3 text-white text-lg leading-none"
+        aria-label="Dismiss"
+      >✕</button>
+    </div>
     <div class="container mx-auto px-4 py-8 max-w-7xl">
-      <!-- Top Bar: Money + Rating -->
-      <header
-        class="glass-card rounded-3xl p-6 mb-8 transition-all duration-300"
-      >
-        <div class="flex flex-wrap justify-between items-center gap-4">
-          <!-- Money Display -->
-          <div class="flex items-center gap-2">
-            <span class="text-2xl sm:text-3xl">🥙</span>
-            <div>
-              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Kebabs</div>
-              <div class="text-lg sm:text-2xl font-black text-orange-500" id="kebabCount">
-                0
-              </div>
+      <!-- Top Bar: Money + Rating — compact single row on mobile -->
+      <header class="glass-card rounded-2xl sm:rounded-3xl p-3 sm:p-6 mb-4 sm:mb-8 transition-all duration-300">
+        <div class="flex justify-between items-center gap-2 sm:gap-4 flex-nowrap sm:flex-wrap">
+          <!-- Kebabs -->
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="text-xl sm:text-3xl flex-shrink-0">🥙</span>
+            <div class="min-w-0">
+              <div class="text-[9px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider hidden sm:block">Kebabs</div>
+              <div class="text-base sm:text-2xl font-black text-orange-500 truncate" id="kebabCount">0</div>
             </div>
           </div>
 
-          <!-- Income Display -->
-          <div class="flex items-center gap-2">
-            <span class="text-lg sm:text-2xl">💰</span>
-            <div>
-              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Per Second</div>
-              <div class="text-base sm:text-xl font-black text-green-600" id="perSecond">
-                +0
-              </div>
+          <!-- Per Second -->
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="text-base sm:text-2xl flex-shrink-0">💰</span>
+            <div class="min-w-0">
+              <div class="text-[9px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider hidden sm:block">Per Second</div>
+              <div class="text-sm sm:text-xl font-black text-green-600 truncate" id="perSecond">+0</div>
             </div>
           </div>
 
-          <!-- Rating Display -->
-          <div class="flex items-center gap-2">
-            <span class="text-lg sm:text-2xl">⭐</span>
-            <div>
-              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Rating</div>
-              <div class="text-base sm:text-xl font-black text-yellow-500" id="ratingDisplay">
-                ⭐⭐⭐
-              </div>
+          <!-- Rating — hidden on smallest screens -->
+          <div class="hidden xs:flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="text-base sm:text-2xl flex-shrink-0">⭐</span>
+            <div class="min-w-0">
+              <div class="text-[9px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider hidden sm:block">Rating</div>
+              <div class="text-sm sm:text-xl font-black text-yellow-500" id="ratingDisplay">⭐⭐⭐</div>
             </div>
           </div>
 
-          <!-- Reputation Display with Progress Bar -->
-          <div class="flex items-center gap-2">
-            <span class="text-lg sm:text-2xl">💯</span>
-            <div class="w-20 sm:w-24">
-              <div class="text-[10px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider">Reputation</div>
-              <div
-                class="text-base sm:text-xl font-black text-blue-500"
-                id="reputationDisplay"
-              >
-                50
-              </div>
-              <div class="bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
-                <div
-                  id="reputationBar"
-                  class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-300"
-                  style="width: 50%"
-                ></div>
+          <!-- Reputation -->
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="text-base sm:text-2xl flex-shrink-0">💯</span>
+            <div class="w-14 sm:w-24 min-w-0">
+              <div class="text-[9px] sm:text-xs text-gray-500 font-semibold uppercase tracking-wider hidden sm:block">Reputation</div>
+              <div class="text-sm sm:text-xl font-black text-blue-500" id="reputationDisplay">50</div>
+              <div class="bg-gray-200 rounded-full h-1 sm:h-1.5 mt-0.5 sm:mt-1 overflow-hidden">
+                <div id="reputationBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-300" style="width:50%"></div>
               </div>
             </div>
           </div>
@@ -1004,6 +1326,26 @@
             </div>
           </div>
 
+          <!-- Daily Streak & Reward -->
+          <div id="daily-streak-panel" class="mt-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="streak-flame text-xl">🔥</span>
+                <div>
+                  <div class="text-xs font-black text-amber-700 uppercase tracking-wider">Daily Streak</div>
+                  <div class="text-lg font-black text-amber-800">Day <span id="streak-count">1</span></div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-amber-600 font-bold">Next reward in</div>
+                <div class="text-sm font-black text-amber-700" id="streak-timer">—</div>
+              </div>
+            </div>
+            <div class="mt-2 bg-amber-200/50 rounded-full h-1.5 overflow-hidden">
+              <div id="streak-progress-bar" class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-1000" style="width:0%"></div>
+            </div>
+          </div>
+
           <!-- Daily Quests -->
           <div
             class="mt-4 p-3 bg-emerald-50 rounded-xl border-2 border-emerald-200"
@@ -1116,6 +1458,19 @@
               <input id="screenShakeToggle" type="checkbox" checked />
               <span>On</span>
             </label>
+          </div>
+          <!-- Sound toggle -->
+          <div class="mt-2 flex items-center justify-center gap-2 text-xs font-bold text-gray-600">
+            <span>Sound</span>
+            <label class="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1">
+              <input id="soundToggle" type="checkbox" checked />
+              <span>On</span>
+            </label>
+          </div>
+          <!-- Export / Import save -->
+          <div class="mt-3 flex gap-2 justify-center">
+            <button onclick="exportSave()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all">📤 Export</button>
+            <button onclick="importSave()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all">📥 Import</button>
           </div>
         </div>
 
@@ -1301,6 +1656,12 @@
           >
             🤝 Community
           </button>
+          <button
+            class="tab-btn bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600 px-6 py-3 rounded-2xl font-black transition-all shadow-sm"
+            data-tab="settings"
+          >
+            ⚙️ Settings
+          </button>
         </div>
       </nav>
 
@@ -1379,6 +1740,25 @@
             <p class="text-lg text-gray-600 mb-8 font-medium">
               Risk it all in our high-stakes minigames. Luck favors the hungry!
             </p>
+
+            <!-- Story Panel -->
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-6 mb-8">
+              <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-3xl">📖</span>
+                  <div>
+                    <div class="font-black text-gray-800 text-lg">Your Kebab Story</div>
+                    <div class="text-sm text-gray-500"><span id="story-chapters-unlocked">1</span> / 6 chapters unlocked</div>
+                  </div>
+                </div>
+                <button onclick="openStoryModal()" class="bg-amber-500 hover:bg-amber-600 text-white font-black px-5 py-2.5 rounded-2xl transition-all shadow-md">
+                  Read Story →
+                </button>
+              </div>
+              <div class="mt-3 bg-amber-200/40 rounded-full h-2 overflow-hidden">
+                <div id="story-progress-bar" class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500" style="width:16%"></div>
+              </div>
+            </div>
 
             <div class="grid lg:grid-cols-2 gap-8">
               <!-- KebabJack -->
@@ -1565,6 +1945,134 @@
               </div>
             </div>
           </div>
+
+          <!-- Kebab Spin -->
+          <div class="glass-card rounded-[40px] p-10 lg:p-16 mt-8">
+            <h3 class="text-3xl font-black text-gray-800 mb-2 flex items-center gap-3">
+              <span class="text-4xl">🎰</span> Kebab Spin
+            </h3>
+            <p class="text-lg text-gray-600 mb-8 font-medium">Spin the reels for massive multipliers. Match 3 to win big!</p>
+            <div class="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-[32px] p-8 text-white shadow-2xl max-w-lg mx-auto">
+              <!-- Bet input -->
+              <div class="mb-6">
+                <label class="text-sm font-black uppercase tracking-wider text-purple-200">Bet Amount</label>
+                <input type="number" id="ks-bet" class="w-full bg-white/20 border-2 border-white/30 rounded-2xl px-6 py-4 text-2xl font-black focus:outline-none focus:border-white transition-all mt-2" value="50" min="10" />
+              </div>
+              <!-- Reels -->
+              <div class="flex justify-center gap-4 mb-6">
+                <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-4xl font-black border-2 border-white/30 shadow-inner" id="ks-reel-0">🥙</div>
+                <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-4xl font-black border-2 border-white/30 shadow-inner" id="ks-reel-1">🥙</div>
+                <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center text-4xl font-black border-2 border-white/30 shadow-inner" id="ks-reel-2">🥙</div>
+              </div>
+              <!-- Spin button -->
+              <button id="ks-spin-btn" onclick="spinKebabSlot()" class="w-full bg-yellow-400 hover:bg-yellow-300 text-purple-900 py-5 rounded-2xl font-black text-xl transition-all shadow-lg active:scale-95 mb-4">
+                🎰 SPIN!
+              </button>
+              <!-- Result -->
+              <div id="ks-result" class="text-center font-black text-xl py-3 rounded-2xl min-h-[3rem]"></div>
+              <!-- Paytable -->
+              <div class="mt-4 bg-white/10 rounded-2xl p-4 text-sm">
+                <div class="font-black text-purple-200 uppercase tracking-wider mb-2 text-xs">Paytable</div>
+                <div class="grid grid-cols-2 gap-1 text-xs font-bold">
+                  <span>🥙🥙🥙</span><span class="text-yellow-300">10x</span>
+                  <span>🔥🔥🔥</span><span class="text-yellow-300">8x</span>
+                  <span>💎💎💎</span><span class="text-yellow-300">20x</span>
+                  <span>🌟🌟🌟</span><span class="text-yellow-300">15x</span>
+                  <span>Any 2 match</span><span class="text-green-300">1.5x</span>
+                  <span>No match</span><span class="text-red-300">0x (lose)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content hidden">
+          <div class="glass-card rounded-[40px] p-10 lg:p-16">
+            <h3 class="text-3xl font-black text-gray-800 mb-8 flex items-center gap-3">
+              <span class="text-4xl">⚙️</span> Settings
+            </h3>
+
+            <!-- Account -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-4 flex items-center gap-2">👤 Account</h4>
+              <div id="settings-auth-status" class="text-sm text-gray-600 mb-4 font-medium">Not signed in</div>
+              <div class="flex flex-wrap gap-3">
+                <button onclick="loginWithGoogle()" id="settings-signin-btn" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">Sign In with Google</button>
+                <button onclick="logoutUser()" id="settings-signout-btn" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2.5 rounded-2xl font-black text-sm transition-all">Sign Out</button>
+              </div>
+            </div>
+
+            <!-- Gameplay -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-4">🎮 Gameplay</h4>
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-bold text-gray-800">Sound Effects</div>
+                    <div class="text-xs text-gray-500">Click sounds and audio feedback</div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="settings-sound" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                  </label>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-bold text-gray-800">Screen Shake</div>
+                    <div class="text-xs text-gray-500">Shake effect on big events</div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="settings-shake" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                  </label>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-bold text-gray-800">Notification Level</div>
+                    <div class="text-xs text-gray-500">How many in-game popups to show</div>
+                  </div>
+                  <select id="settings-notif" class="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 font-bold text-sm">
+                    <option value="low">Low</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Push Notifications -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-1 flex items-center gap-2">🔔 Push Notifications</h4>
+              <p class="text-xs text-gray-500 mb-4">Get reminded when supplies run low or your daily reward is ready — even when the tab is closed.</p>
+              <div id="push-notif-status" class="text-sm font-bold text-gray-500 mb-3">Status: checking…</div>
+              <button id="push-notif-btn" onclick="requestPushPermission()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">
+                Enable Push Notifications
+              </button>
+            </div>
+
+            <!-- Save & Data -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-4">💾 Save & Data</h4>
+              <div class="flex flex-wrap gap-3">
+                <button onclick="saveGame()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">💾 Save Now</button>
+                <button onclick="exportSave()" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">📤 Export Save</button>
+                <button onclick="importSave()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">📥 Import Save</button>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="text-sm font-bold text-gray-500 mb-2">Last saved: <span id="settings-last-save">—</span></div>
+              </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="bg-red-50 rounded-3xl p-6 border-2 border-red-200">
+              <h4 class="text-lg font-black text-red-700 mb-2">⚠️ Danger Zone</h4>
+              <p class="text-sm text-red-600 mb-4">This permanently deletes all progress. There is no undo.</p>
+              <button onclick="document.getElementById('reset-modal').classList.add('open')" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">
+                🔄 Reset All Progress
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Community Tab -->
@@ -1580,6 +2088,7 @@
               <div id="auth-status" class="bg-white/20 backdrop-blur-sm border border-white/30 px-5 py-3 rounded-2xl text-sm font-bold text-white shadow-inner">
                 Guest Session
                 <button onclick="loginWithGoogle()" class="underline ml-2 hover:text-yellow-200 transition-colors">Sign In</button>
+                <button onclick="document.getElementById('privacy-modal').style.display='flex'" class="text-white/60 hover:text-white/90 text-xs underline ml-2 transition-colors">Privacy</button>
               </div>
             </div>
           </div>
@@ -1690,7 +2199,7 @@
               <!-- Trade Market -->
               <div class="glass-card rounded-3xl overflow-hidden shadow-xl">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 flex justify-between items-center">
-                  <h3 class="text-xl font-black text-white flex items-center gap-2">🔄 Stock Exchange</h3>
+                  <h3 class="text-xl font-black text-white flex items-center gap-2">🔄 Local Market <span class="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full ml-1">Simulated</span></h3>
                   <button onclick="createTradeOffer()" class="bg-white/20 hover:bg-white/40 text-white text-xs font-black px-3 py-2 rounded-xl transition-all">+ POST</button>
                 </div>
                 <div id="trade-market-list" class="p-4 space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar">
@@ -1731,12 +2240,21 @@
               </div>
             </div>
           </div>
+          <!-- Privacy / Terms footer -->
+          <div class="text-center mt-4 pb-2">
+            <button onclick="document.getElementById('privacy-modal').style.display='flex'" class="text-xs text-gray-400 hover:text-orange-500 underline transition-colors">Privacy Policy &amp; Terms of Use</button>
+          </div>
         </div>
       </div>
 
       <!-- Achievements Section -->
       <div class="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 mt-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-3">� 🏆 Achievements</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-bold text-gray-800">🏆 Achievements</h3>
+          <span class="text-xs font-black text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+            <span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">0</span> unlocked
+          </span>
+        </div>
         <div
           id="achievementsList"
           class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
@@ -1829,7 +2347,8 @@
       // ============================================
       const firebaseConfig = {
         apiKey: "AIzaSyCy2Kp2DaqBdLhn_0QGIrBddna8MbzYp28",
-        authDomain: "kebab-clicker-99f4d.firebaseapp.com",
+        // Use the .web.app domain — Google OAuth blocks redirects from .firebaseapp.com on mobile
+        authDomain: "kebab-clicker-99f4d.web.app",
         projectId: "kebab-clicker-99f4d",
         storageBucket: "kebab-clicker-99f4d.firebasestorage.app",
         messagingSenderId: "593149259214",
@@ -1850,7 +2369,13 @@
           db = firebase.firestore();
           auth = firebase.auth();
           firebaseEnabled = true;
-          if (firebaseConfig.measurementId) firebase.analytics();
+          // Load analytics lazily so it doesn't block the game
+          if (firebaseConfig.measurementId) {
+            const s = document.createElement("script");
+            s.src = "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js";
+            s.onload = () => { try { firebase.analytics(); } catch(e) {} };
+            document.head.appendChild(s);
+          }
           console.log("🔥 Real Backend Initialized!");
         } else {
           console.warn("⚠️ Firebase not configured. Running in Local Mode.");
@@ -1858,6 +2383,17 @@
       } catch (e) {
         console.error("Firebase init failed:", e);
       }
+
+      // Offline / online indicator
+      function _updateOfflineIndicator() {
+        const el = document.getElementById("offline-indicator");
+        if (!el) return;
+        const isOffline = !navigator.onLine || !firebaseEnabled;
+        el.classList.toggle("visible", isOffline);
+      }
+      window.addEventListener("online",  _updateOfflineIndicator);
+      window.addEventListener("offline", _updateOfflineIndicator);
+      // Will also be called after initGame when DOM is ready
 
       let gameState = {
         kebabs: 0,
@@ -2389,6 +2925,41 @@
             duration: 40,
             rarity: 0.018,
           },
+          foodcritic: {
+            name: "Food Critic",
+            icon: "📝",
+            bonus: 2.2,
+            duration: 55,
+            rarity: 0.008,
+          },
+          streetfoodie: {
+            name: "Street Foodie",
+            icon: "🍴",
+            bonus: 1.3,
+            duration: 25,
+            rarity: 0.03,
+          },
+          chefgordan: {
+            name: "Chef Gordan",
+            icon: "👨‍🍳",
+            bonus: 2.5,
+            duration: 70,
+            rarity: 0.005,
+          },
+          tourguide: {
+            name: "Tour Guide",
+            icon: "🗺️",
+            bonus: 1.4,
+            duration: 35,
+            rarity: 0.025,
+          },
+          localmayor: {
+            name: "Local Mayor",
+            icon: "🏛️",
+            bonus: 1.9,
+            duration: 45,
+            rarity: 0.01,
+          },
         },
 
         achievements: {
@@ -2622,7 +3193,8 @@
       };
       const SAVE_VERSION = 3;
       const SIM_TICK_MS = 100;
-      const RENDER_TICK_MS = 250;
+      // Render slower on mobile to save battery — 500ms vs 250ms on desktop
+      const RENDER_TICK_MS = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 500 : 250;
       const EVENT_TYPE_COOLDOWN_MS = {
         festival: 110000,
         crisis: 90000,
@@ -3600,187 +4172,201 @@
       }
 
       // ============================================
-      // DISPLAY UPDATE
+      // DISPLAY UPDATE — diffed to avoid unnecessary DOM writes
       // ============================================
+      // Cache of last-rendered values so we only write to DOM when something changed
+      const _displayCache = {};
+      function _set(el, val) {
+        if (!el) return;
+        const v = String(val);
+        if (el._lastVal === v) return;
+        el._lastVal = v;
+        el.textContent = v;
+      }
+      function _setWidth(el, pct) {
+        if (!el) return;
+        const v = pct + "%";
+        if (el._lastWidth === v) return;
+        el._lastWidth = v;
+        el.style.width = v;
+      }
+
       function updateDisplay() {
-        kebabCount.textContent = Math.floor(gameState.kebabs);
+        _set(kebabCount, Math.floor(gameState.kebabs));
         const breakdown = incomeCache || calculateIncomeBreakdown();
         const income = Math.floor(breakdown.finalIncome);
-        perSecondDisplay.textContent = `+${income} per second`;
-        if (perSecondBottom) perSecondBottom.textContent = `+${income}`;
-        if (incomeBaseBreakdown)
-          incomeBaseBreakdown.textContent = `${breakdown.baseIncome.toFixed(2)} /s`;
-        if (incomeCityBreakdown)
-          incomeCityBreakdown.textContent = `Current ${(breakdown.cityMult * breakdown.cityLevelMult).toFixed(2)}x • Network ${breakdown.cityNetworkMult.toFixed(2)}x`;
-        if (incomeRepBreakdown)
-          incomeRepBreakdown.textContent = `${breakdown.repMult.toFixed(2)}x`;
-        if (incomeEventBreakdown)
-          incomeEventBreakdown.textContent = `${breakdown.eventMult.toFixed(2)}x`;
-        if (incomeFinalBreakdown)
-          incomeFinalBreakdown.textContent = `${income.toLocaleString()}`;
+        _set(perSecondDisplay, `+${income} per second`);
+        _set(perSecondBottom, `+${income}`);
+        _set(incomeBaseBreakdown, `${breakdown.baseIncome.toFixed(2)} /s`);
+        _set(incomeCityBreakdown, `Current ${(breakdown.cityMult * breakdown.cityLevelMult).toFixed(2)}x • Network ${breakdown.cityNetworkMult.toFixed(2)}x`);
+        _set(incomeRepBreakdown, `${breakdown.repMult.toFixed(2)}x`);
+        _set(incomeEventBreakdown, `${breakdown.eventMult.toFixed(2)}x`);
+        _set(incomeFinalBreakdown, `${income.toLocaleString()}`);
 
-        // Update level and XP
-        if (levelDisplay) levelDisplay.textContent = gameState.level;
-        if (xpDisplay)
-          xpDisplay.textContent = `${Math.floor(gameState.xp)}/${gameState.xpToNextLevel}`;
-        if (xpBar)
-          xpBar.style.width = `${(gameState.xp / gameState.xpToNextLevel) * 100}%`;
+        // Level and XP
+        _set(levelDisplay, gameState.level);
+        _set(xpDisplay, `${Math.floor(gameState.xp)}/${gameState.xpToNextLevel}`);
+        _setWidth(xpBar, (gameState.xp / gameState.xpToNextLevel) * 100);
 
-        // Update stats
-        totalClicksDisplay.textContent = gameState.totalClicks;
-        let totalUpgrades = 0;
-        for (const category in gameState.upgrades) {
-          for (const key in gameState.upgrades[category]) {
-            totalUpgrades += gameState.upgrades[category][key].owned;
-          }
+        // Stats — only recalculate totalUpgrades when upgrades change (tracked by dirty flag)
+        _set(totalClicksDisplay, gameState.totalClicks);
+        if (_displayCache.upgradesDirty !== false) {
+          let totalUpgrades = 0;
+          for (const cat in gameState.upgrades)
+            for (const k in gameState.upgrades[cat])
+              totalUpgrades += gameState.upgrades[cat][k].owned;
+          _set(totalUpgradesDisplay, totalUpgrades);
+          _displayCache.upgradesDirty = false;
         }
-        totalUpgradesDisplay.textContent = totalUpgrades;
-        maxComboDisplay.textContent = gameState.maxCombo;
+        _set(maxComboDisplay, gameState.maxCombo);
 
-        // Update play time
-        const playSeconds = Math.floor(
-          (Date.now() - gameState.playStartTime) / 1000,
-        );
-        const minutes = Math.floor(playSeconds / 60);
-        const seconds = playSeconds % 60;
-        playTimeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+        // Play time — only update every second, not every 250ms
+        const playSeconds = Math.floor((Date.now() - gameState.playStartTime) / 1000);
+        if (playSeconds !== _displayCache.lastPlaySeconds) {
+          _displayCache.lastPlaySeconds = playSeconds;
+          const minutes = Math.floor(playSeconds / 60);
+          const seconds = playSeconds % 60;
+          _set(playTimeDisplay, `${minutes}:${seconds.toString().padStart(2, "0")}`);
+        }
 
-        // Update weather
+        // Weather — rarely changes
         const weather = weatherTypes[gameState.weather];
-        weatherIcon.textContent = weather.icon;
-        weatherText.textContent = weather.name;
+        if (_displayCache.lastWeather !== gameState.weather) {
+          _displayCache.lastWeather = gameState.weather;
+          if (weatherIcon) weatherIcon.textContent = weather.icon;
+          if (weatherText) weatherText.textContent = weather.name;
+        }
 
-        // Update clock
+        // Clock — update every in-game minute
         const hours = Math.floor(gameState.gameHour);
         const mins = Math.floor((gameState.gameHour % 1) * 60);
-        clockDisplay.textContent = `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+        const clockStr = `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+        _set(clockDisplay, clockStr);
 
-        // Update reputation and rating
+        // Reputation and rating
         const city = gameState.cities[gameState.currentCity];
-        reputationDisplay.textContent = Math.floor(city.reputation);
-        ratingDisplay.textContent = "⭐".repeat(city.rating);
+        const repFloor = Math.floor(city.reputation);
+        _set(reputationDisplay, repFloor);
+        const ratingStr = "⭐".repeat(city.rating);
+        _set(ratingDisplay, ratingStr);
+        _setWidth(document.getElementById("reputationBar"), city.reputation);
 
-        // Update reputation progress bar
-        const reputationBar = document.getElementById("reputationBar");
-        if (reputationBar) {
-          reputationBar.style.width = `${city.reputation}%`;
+        // Visitor panel — only rebuild HTML when visitor state changes
+        const visitorKey = `${gameState.currentVisitor}|${gameState.visitorEndTime}|${gameState.temporaryBoost}|${gameState.temporaryBoostEndTime}`;
+        if (_displayCache.lastVisitorKey !== visitorKey) {
+          _displayCache.lastVisitorKey = visitorKey;
+          updateVisitorPanel();
+        } else {
+          // Just update the countdown text cheaply
+          _updateVisitorCountdown();
         }
 
-        // Update visitor panel
-        updateVisitorPanel();
-
-        // Update supply display
+        // Supply bars — cheap, just width updates
         updateSupplyDisplay();
+
+        // Supply tab full re-render only when open
         const supplyTab = document.getElementById("supply-tab");
         if (supplyTab && !supplyTab.classList.contains("hidden")) {
           renderSupply();
         }
 
-        // Update upgrade affordability
-        updateUpgradeAffordability();
+        // Upgrade affordability — throttled: only update when kebab floor changes by ≥1%
+        const kebabFloor = Math.floor(gameState.kebabs);
+        if (!_displayCache.lastAffordKebabs || Math.abs(kebabFloor - _displayCache.lastAffordKebabs) / Math.max(1, _displayCache.lastAffordKebabs) > 0.01) {
+          _displayCache.lastAffordKebabs = kebabFloor;
+          updateUpgradeAffordability();
+        }
 
-        // Update boost button
+        // Boost button
         updateBoostButton();
-        renderDailyQuests();
-        updateRetentionHints();
 
-        // Update Prestige UI
+        // Daily quests — throttled to once per second
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (_displayCache.lastQuestSec !== nowSec) {
+          _displayCache.lastQuestSec = nowSec;
+          renderDailyQuests();
+          updateRetentionHints();
+          updateStreakUI();
+          updateSettingsLastSave();
+        }
+
+        // Prestige UI — only when prestige state changes
+        const prestigeKey = `${gameState.prestige.count}|${gameState.prestige.permanentMultipliers.income.toFixed(3)}`;
+        if (_displayCache.lastPrestigeKey !== prestigeKey) {
+          _displayCache.lastPrestigeKey = prestigeKey;
+          _updatePrestigeUI();
+        }
+
+        // Marketing UI — throttled to once per second
+        if (_displayCache.lastMarketingSec !== nowSec) {
+          _displayCache.lastMarketingSec = nowSec;
+          _updateMarketingUI();
+        }
+
+        // Supply Rush UI
+        const rushActive = gameState.supplyRush.active;
+        if (_displayCache.lastRushActive !== rushActive) {
+          _displayCache.lastRushActive = rushActive;
+          const supplyRushIndicator = document.getElementById("supplyRushIndicator");
+          if (supplyRushIndicator) supplyRushIndicator.classList.toggle("hidden", !rushActive);
+        }
+        if (rushActive) {
+          const supplyRushTimer = document.getElementById("supplyRushTimer");
+          if (supplyRushTimer) {
+            const remaining = Math.ceil((gameState.supplyRush.endsAt - Date.now()) / 1000);
+            _set(supplyRushTimer, `Ends in ${Math.max(0, remaining)}s`);
+          }
+        }
+      }
+
+      function _updateVisitorCountdown() {
+        const visitorPanel = document.getElementById("visitorPanel");
+        if (!visitorPanel) return;
+        if (gameState.currentVisitor && Date.now() < gameState.visitorEndTime) {
+          const remaining = Math.ceil((gameState.visitorEndTime - Date.now()) / 1000);
+          const el = visitorPanel.querySelector(".visitor-countdown");
+          if (el) _set(el, `${remaining}s left`);
+        }
+      }
+
+      function _updatePrestigeUI() {
         const prestigeCount = document.getElementById("prestigeCount");
-        const prestigeIncomeMult =
-          document.getElementById("prestigeIncomeMult");
+        const prestigeIncomeMult = document.getElementById("prestigeIncomeMult");
         const prestigeClickMult = document.getElementById("prestigeClickMult");
         const prestigePoints = document.getElementById("prestigePoints");
         const prestigeBtn = document.getElementById("prestigeBtn");
-
         if (prestigeCount) prestigeCount.textContent = gameState.prestige.count;
-        if (prestigeIncomeMult)
-          prestigeIncomeMult.textContent =
-            gameState.prestige.permanentMultipliers.income.toFixed(2);
-        if (prestigeClickMult)
-          prestigeClickMult.textContent =
-            gameState.prestige.permanentMultipliers.click.toFixed(2);
-
+        if (prestigeIncomeMult) prestigeIncomeMult.textContent = gameState.prestige.permanentMultipliers.income.toFixed(2);
+        if (prestigeClickMult) prestigeClickMult.textContent = gameState.prestige.permanentMultipliers.click.toFixed(2);
         const availablePoints = calculatePrestigePoints();
-        const nextMilestone = [1, 3, 5, 10].find(
-          (m) => m > (gameState.prestige.count || 0),
-        );
-        if (prestigePoints)
-          prestigePoints.textContent = nextMilestone
-            ? `${availablePoints} points | Next milestone at ${nextMilestone}`
-            : `${availablePoints} points | Max milestones reached`;
+        const nextMilestone = [1, 3, 5, 10].find(m => m > (gameState.prestige.count || 0));
+        if (prestigePoints) prestigePoints.textContent = nextMilestone
+          ? `${availablePoints} points | Next milestone at ${nextMilestone}`
+          : `${availablePoints} points | Max milestones reached`;
         if (prestigeBtn) {
-          if (availablePoints > 0) {
-            prestigeBtn.disabled = false;
-            prestigeBtn.classList.remove("opacity-50", "cursor-not-allowed");
-          } else {
-            prestigeBtn.disabled = true;
-            prestigeBtn.classList.add("opacity-50", "cursor-not-allowed");
-          }
+          prestigeBtn.disabled = availablePoints <= 0;
+          prestigeBtn.classList.toggle("opacity-50", availablePoints <= 0);
+          prestigeBtn.classList.toggle("cursor-not-allowed", availablePoints <= 0);
         }
+      }
 
-        // Update Marketing Campaigns UI
+      function _updateMarketingUI() {
         const marketingLocal = document.getElementById("marketingLocal");
         const marketingSocial = document.getElementById("marketingSocial");
         const marketingTV = document.getElementById("marketingTV");
         const activeCampaign = document.getElementById("activeCampaign");
-
         let anyCampaignActive = false;
-        for (const type in gameState.marketingCampaigns) {
-          if (gameState.marketingCampaigns[type].active) {
-            anyCampaignActive = true;
-            break;
-          }
-        }
-
-        if (activeCampaign) {
-          if (anyCampaignActive) {
-            activeCampaign.classList.remove("hidden");
-            activeCampaign.textContent = "📢 Campaign Active!";
-          } else {
-            activeCampaign.classList.add("hidden");
-          }
-        }
-
-        // Disable buttons if campaigns are active or can't afford
-        if (marketingLocal) {
-          marketingLocal.disabled = anyCampaignActive || gameState.kebabs < 500;
-          marketingLocal.classList.toggle(
-            "opacity-50",
-            anyCampaignActive || gameState.kebabs < 500,
-          );
-        }
-        if (marketingSocial) {
-          marketingSocial.disabled =
-            anyCampaignActive || gameState.kebabs < 2000;
-          marketingSocial.classList.toggle(
-            "opacity-50",
-            anyCampaignActive || gameState.kebabs < 2000,
-          );
-        }
-        if (marketingTV) {
-          marketingTV.disabled = anyCampaignActive || gameState.kebabs < 10000;
-          marketingTV.classList.toggle(
-            "opacity-50",
-            anyCampaignActive || gameState.kebabs < 10000,
-          );
-        }
-
-        // Update Supply Rush UI
-        const supplyRushIndicator = document.getElementById(
-          "supplyRushIndicator",
-        );
-        const supplyRushTimer = document.getElementById("supplyRushTimer");
-        if (supplyRushIndicator && supplyRushTimer) {
-          if (gameState.supplyRush.active) {
-            supplyRushIndicator.classList.remove("hidden");
-            const remaining = Math.ceil(
-              (gameState.supplyRush.endsAt - Date.now()) / 1000,
-            );
-            supplyRushTimer.textContent = `Ends in ${Math.max(0, remaining)}s`;
-          } else {
-            supplyRushIndicator.classList.add("hidden");
-          }
-        }
+        for (const type in gameState.marketingCampaigns)
+          if (gameState.marketingCampaigns[type].active) { anyCampaignActive = true; break; }
+        if (activeCampaign) activeCampaign.classList.toggle("hidden", !anyCampaignActive);
+        const costs = { marketingLocal: 500, marketingSocial: 2000, marketingTV: 10000 };
+        [marketingLocal, marketingSocial, marketingTV].forEach((btn, i) => {
+          if (!btn) return;
+          const cost = [500, 2000, 10000][i];
+          const disabled = anyCampaignActive || gameState.kebabs < cost;
+          btn.disabled = disabled;
+          btn.classList.toggle("opacity-50", disabled);
+        });
       }
 
       // Update visitor panel
@@ -3790,22 +4376,19 @@
 
         if (gameState.currentVisitor && Date.now() < gameState.visitorEndTime) {
           const visitor = gameState.visitors[gameState.currentVisitor];
-          const remaining = Math.ceil(
-            (gameState.visitorEndTime - Date.now()) / 1000,
-          );
+          const remaining = Math.ceil((gameState.visitorEndTime - Date.now()) / 1000);
           visitorPanel.innerHTML = `
-                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg animate-pulse">
-                        <span class="text-2xl">${visitor.icon}</span>
-                        <div class="flex flex-col">
-                            <span class="font-bold text-xs uppercase tracking-tighter">VIP VISITOR</span>
-                            <span class="font-black">${visitor.name}</span>
-                        </div>
-                        <div class="ml-auto text-right">
-                            <div class="text-xs font-bold">${visitor.bonus}x Income</div>
-                            <div class="text-[10px] opacity-80">${remaining}s left</div>
-                        </div>
-                    </div>
-                `;
+            <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg animate-pulse">
+              <span class="text-2xl">${visitor.icon}</span>
+              <div class="flex flex-col">
+                <span class="font-bold text-xs uppercase tracking-tighter">VIP VISITOR</span>
+                <span class="font-black">${visitor.name}</span>
+              </div>
+              <div class="ml-auto text-right">
+                <div class="text-xs font-bold">${visitor.bonus}x Income</div>
+                <div class="visitor-countdown text-[10px] opacity-80">${remaining}s left</div>
+              </div>
+            </div>`;
           visitorPanel.classList.remove("hidden");
         } else if (
           gameState.temporaryBoost > 1 &&
@@ -3843,19 +4426,20 @@
         const breadBar = document.getElementById("breadBar");
         const vegBar = document.getElementById("vegBar");
 
-        if (meatDisplay)
-          meatDisplay.textContent = Math.floor(gameState.supply.meat.stock);
-        if (breadDisplay)
-          breadDisplay.textContent = Math.floor(gameState.supply.bread.stock);
-        if (vegDisplay)
-          vegDisplay.textContent = Math.floor(
-            gameState.supply.vegetables.stock,
-          );
+        if (meatDisplay) meatDisplay.textContent = Math.floor(gameState.supply.meat.stock);
+        if (breadDisplay) breadDisplay.textContent = Math.floor(gameState.supply.bread.stock);
+        if (vegDisplay) vegDisplay.textContent = Math.floor(gameState.supply.vegetables.stock);
 
-        // Update progress bars & Low stock alerts
         updateSupplyBar(meatBar, gameState.supply.meat);
         updateSupplyBar(breadBar, gameState.supply.bread);
         updateSupplyBar(vegBar, gameState.supply.vegetables);
+
+        // Show red dot on mobile nav Supply button when any supply is low
+        const anyLow = gameState.supply.meat.stock < gameState.supply.meat.maxStock * 0.15
+          || gameState.supply.bread.stock < gameState.supply.bread.maxStock * 0.15
+          || gameState.supply.vegetables.stock < gameState.supply.vegetables.maxStock * 0.15;
+        const badge = document.getElementById("supply-nav-badge");
+        if (badge) badge.classList.toggle("hidden", !anyLow);
       }
 
       function updateSupplyBar(bar, supply) {
@@ -4033,6 +4617,7 @@
             `🌍 ${city.name} unlocked and you have moved there! Expansion bonus +${unlockReward.toLocaleString()} 🥙`,
             "success",
           );
+          postWorldEvent(`🌍 <b>${gameState.username || "A chef"}</b> unlocked ${city.name}!`);
           openRestaurant(key);
           renderCities();
           renderCityContracts();
@@ -4316,18 +4901,11 @@
       // UPGRADE RENDERING (CATEGORIZED)
       // ============================================
       function renderUpgrades() {
-        if (!upgradesList) {
-          console.error("upgradesList element not found!");
-          return;
-        }
-        console.log("Rendering upgrades, upgradesList found:", upgradesList);
-        console.log("gameState.upgrades:", gameState.upgrades);
+        if (!upgradesList) return;
         upgradesList.innerHTML = "";
 
         if (!gameState.upgrades) {
-          console.error("gameState.upgrades is undefined!");
-          upgradesList.innerHTML =
-            '<div class="text-red-500">Error: Upgrades not loaded</div>';
+          upgradesList.innerHTML = '<div class="text-red-500">Error: Upgrades not loaded</div>';
           return;
         }
 
@@ -4337,11 +4915,10 @@
         for (const category in gameState.upgrades) {
           const keys = Object.keys(gameState.upgrades[category] || {});
           if (keys.length === 0) continue;
-          console.log("Rendering category:", category);
+
           // Add category header
           const categoryHeader = document.createElement("div");
-          categoryHeader.className =
-            "text-lg font-bold text-gray-700 mt-4 mb-2 capitalize";
+          categoryHeader.className = "text-lg font-bold text-gray-700 mt-4 mb-2 capitalize";
           categoryHeader.textContent = category;
           upgradesList.appendChild(categoryHeader);
 
@@ -4361,29 +4938,23 @@
             upgradeItem.dataset.category = category;
             upgradeItem.dataset.key = key;
             upgradeItem.innerHTML = `
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold text-base md:text-lg text-gray-800 text-fit-tight pr-2">${upgrade.icon} ${upgrade.name}</span>
-                            <span class="bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs md:text-sm whitespace-nowrap">${cost.toLocaleString()} 🥙</span>
-                        </div>
-                        ${upgrade.desc ? `<div class="text-xs text-gray-500 italic mb-2">${upgrade.desc}</div>` : ""}
-                        <div class="flex justify-between text-gray-600 text-xs md:text-sm">
-                            <span>${upgrade.income ? "+" + upgrade.income + "/sec" : upgrade.security ? "+" + upgrade.security + " Security" : upgrade.offlineMult ? `+${(upgrade.offlineMult * 100).toFixed(0)}% Offline` : ""}</span>
-                            <span class="font-semibold text-orange-600">Owned: ${upgrade.owned}</span>
-                        </div>
-                    `;
-
-            upgradeItem.addEventListener("click", () =>
-              buyUpgrade(category, key),
-            );
-
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-base md:text-lg text-gray-800 text-fit-tight pr-2">${upgrade.icon} ${upgrade.name}</span>
+                <span class="bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs md:text-sm whitespace-nowrap">${cost.toLocaleString()} 🥙</span>
+              </div>
+              ${upgrade.desc ? `<div class="text-xs text-gray-500 italic mb-2">${upgrade.desc}</div>` : ""}
+              <div class="flex justify-between text-gray-600 text-xs md:text-sm">
+                <span>${upgrade.income ? "+" + upgrade.income + "/sec" : upgrade.security ? "+" + upgrade.security + " Security" : upgrade.offlineMult ? `+${(upgrade.offlineMult * 100).toFixed(0)}% Offline` : ""}</span>
+                <span class="font-semibold text-orange-600">Owned: ${upgrade.owned}</span>
+              </div>
+            `;
+            upgradeItem.addEventListener("click", () => buyUpgrade(category, key));
             upgradesList.appendChild(upgradeItem);
           }
         }
 
-        console.log(`Rendered ${upgradeCount} upgrades total`);
         if (upgradeCount === 0) {
-          upgradesList.innerHTML =
-            '<div class="text-gray-500">No upgrades available</div>';
+          upgradesList.innerHTML = '<div class="text-gray-500">No upgrades available</div>';
         }
       }
 
@@ -4432,6 +5003,31 @@
       }
 
       // Render achievements
+      function getAchievementProgress(key) {
+        // Returns { current, target } for locked achievements, null for unlocked
+        const a = gameState.achievements[key];
+        if (!a || a.unlocked) return null;
+        const totalKebabs = gameState.totalKebabsEarned;
+        const totalUpgrades = Object.values(gameState.upgrades)
+          .flatMap(cat => Object.values(cat))
+          .reduce((s, u) => s + (u.owned || 0), 0);
+        switch (key) {
+          case "hundredKebabs":         return { current: Math.min(totalKebabs, 100),    target: 100 };
+          case "thousandKebabs":        return { current: Math.min(totalKebabs, 1000),   target: 1000 };
+          case "tenThousandKebabs":     return { current: Math.min(totalKebabs, 10000),  target: 10000 };
+          case "hundredThousandKebabs": return { current: Math.min(totalKebabs, 100000), target: 100000 };
+          case "firstUpgrade":          return { current: Math.min(totalUpgrades, 1),    target: 1 };
+          case "tenUpgrades":           return { current: Math.min(totalUpgrades, 10),   target: 10 };
+          case "level5":                return { current: Math.min(gameState.level, 5),  target: 5 };
+          case "level10":               return { current: Math.min(gameState.level, 10), target: 10 };
+          case "combo10":               return { current: Math.min(gameState.maxCombo, 10), target: 10 };
+          case "cityTraveler":          return { current: Math.min(Object.values(gameState.cities).filter(c => c.unlocked).length, 3), target: 3 };
+          case "cityMagnate":           return { current: Math.min(Math.max(...Object.values(gameState.cities).map(c => c.level || 1)), 5), target: 5 };
+          case "permitBoss":            return { current: Math.min(gameState.cityProgression?.permits || 0, 5), target: 5 };
+          default: return null;
+        }
+      }
+
       function renderAchievements() {
         if (!achievementsDirty) return;
         if (!achievementsList) {
@@ -4442,21 +5038,45 @@
 
         for (const key in gameState.achievements) {
           const achievement = gameState.achievements[key];
+          const progress = getAchievementProgress(key);
+          const pct = progress ? Math.round((progress.current / progress.target) * 100) : 0;
 
           const achievementItem = document.createElement("div");
-          achievementItem.className = `achievement-item ${achievement.unlocked ? "bg-amber-100 border-amber-400" : "bg-gray-50 border-gray-200"} border-2 rounded-xl p-4 flex items-center gap-3 transition-all duration-200`;
+          achievementItem.className = `achievement-item ${achievement.unlocked ? "bg-amber-100 border-amber-400" : "bg-gray-50 border-gray-200"} border-2 rounded-xl p-4 flex flex-col gap-2 transition-all duration-200`;
           achievementItem.innerHTML = `
-                    <span class="text-3xl">${achievement.icon}</span>
-                    <div class="flex-1">
-                        <div class="font-bold text-gray-800">${achievement.name}</div>
-                        <div class="text-sm text-gray-600">${achievement.desc}</div>
-                    </div>
-                    ${achievement.unlocked ? '<span class="text-orange-500 text-xl">✓</span>' : '<span class="text-gray-300 text-xl">🔒</span>'}
-                `;
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${achievement.icon}</span>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-gray-800 truncate">${achievement.name}</div>
+                <div class="text-xs text-gray-500">${achievement.desc}</div>
+              </div>
+              ${achievement.unlocked
+                ? '<span class="text-orange-500 text-xl flex-shrink-0">✓</span>'
+                : '<span class="text-gray-300 text-xl flex-shrink-0">🔒</span>'}
+            </div>
+            ${!achievement.unlocked && progress ? `
+            <div>
+              <div class="flex justify-between text-xs font-bold text-gray-500 mb-1">
+                <span>${progress.current.toLocaleString()}</span>
+                <span>${progress.target.toLocaleString()}</span>
+              </div>
+              <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-400 to-orange-600 h-full rounded-full transition-all duration-500" style="width:${pct}%"></div>
+              </div>
+            </div>` : ""}
+          `;
 
           achievementsList.appendChild(achievementItem);
         }
         achievementsDirty = false;
+
+        // Update count header
+        const total = Object.keys(gameState.achievements).length;
+        const unlocked = Object.values(gameState.achievements).filter(a => a.unlocked).length;
+        const countEl = document.getElementById("achievements-unlocked-count");
+        const totalEl = document.getElementById("achievements-total-count");
+        if (countEl) countEl.textContent = unlocked;
+        if (totalEl) totalEl.textContent = total;
       }
 
       // Update boost button
@@ -4758,6 +5378,7 @@
         if (gameState.kebabs >= cost) {
           gameState.kebabs -= cost;
           gameState.upgrades[category][key].owned++;
+          _displayCache.upgradesDirty = true; // trigger stats recalc in updateDisplay
 
           // Add XP for purchase
           addXP(Math.floor(cost / 10));
@@ -5910,7 +6531,29 @@
       // Reset game
       let resetConfirmTimer;
       async function resetGame() {
-        if (resetButton.textContent.includes("Are you sure?")) {
+        // Show the styled reset confirmation modal instead of the 2-step button trick
+        const modal = document.getElementById("reset-modal");
+        const confirmBtn = document.getElementById("reset-modal-confirm");
+        const cancelBtn  = document.getElementById("reset-modal-cancel");
+        if (!modal) return;
+        modal.classList.add("open");
+
+        const onConfirm = async () => {
+          modal.classList.remove("open");
+          confirmBtn.removeEventListener("click", onConfirm);
+          cancelBtn.removeEventListener("click", onCancel);
+          await _doReset();
+        };
+        const onCancel = () => {
+          modal.classList.remove("open");
+          confirmBtn.removeEventListener("click", onConfirm);
+          cancelBtn.removeEventListener("click", onCancel);
+        };
+        confirmBtn.addEventListener("click", onConfirm);
+        cancelBtn.addEventListener("click", onCancel);
+      }
+
+      async function _doReset() {
           // If signed in, clear cloud data
           if (firebaseEnabled && currentUser) {
             try {
@@ -6209,19 +6852,6 @@
           renderAchievements();
 
           showNotification("Game reset successfully!", "success");
-        } else {
-          const originalText = resetButton.innerHTML;
-          resetButton.textContent = "Are you sure?";
-          resetButton.classList.remove("bg-red-600", "hover:bg-red-700");
-          resetButton.classList.add("bg-black", "hover:bg-gray-800");
-
-          clearTimeout(resetConfirmTimer);
-          resetConfirmTimer = setTimeout(() => {
-            resetButton.innerHTML = originalText;
-            resetButton.classList.add("bg-red-600", "hover:bg-red-700");
-            resetButton.classList.remove("bg-black", "hover:bg-gray-800");
-          }, 3000);
-        }
       }
 
       // ============================================
@@ -6460,10 +7090,28 @@
           const provider = new firebase.auth.GoogleAuthProvider();
           provider.setCustomParameters({ prompt: "select_account" });
 
+          // Detect in-app browsers (Instagram, Facebook, TikTok, etc.)
+          // These block ALL OAuth flows — user must open in a real browser
+          const ua = navigator.userAgent || "";
+          const isInAppBrowser = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Twitter|Snapchat|TikTok/i.test(ua);
+          if (isInAppBrowser) {
+            showNotification(
+              "⚠️ Open in Safari or Chrome to sign in with Google",
+              "error"
+            );
+            // Show a persistent banner with copy-link option
+            const banner = document.getElementById("inapp-browser-banner");
+            if (banner) banner.style.display = "block";
+            return;
+          }
+
           if (_isMobile) {
             // Mobile: always use redirect — popups are blocked by Google policies on phones
             showNotification("Redirecting to Google sign-in...", "info");
+            // Store a flag so we can show a loading state when we come back
+            try { sessionStorage.setItem("pendingGoogleRedirect", "1"); } catch(_) {}
             auth.signInWithRedirect(provider).catch((e) => {
+              try { sessionStorage.removeItem("pendingGoogleRedirect"); } catch(_) {}
               showNotification("Sign-in failed: " + e.message, "error");
             });
           } else {
@@ -6477,7 +7125,9 @@
                 e.message.includes("Cross-Origin-Opener-Policy")
               ) {
                 showNotification("Redirecting to Google sign-in...", "info");
+                try { sessionStorage.setItem("pendingGoogleRedirect", "1"); } catch(_) {}
                 auth.signInWithRedirect(provider).catch((re) => {
+                  try { sessionStorage.removeItem("pendingGoogleRedirect"); } catch(_) {}
                   showNotification("Sign-in failed: " + re.message, "error");
                 });
               } else {
@@ -6499,6 +7149,13 @@
 
       if (firebaseEnabled) {
         // Always check for redirect result on page load (handles mobile redirect flow)
+        // Show a loading indicator if we're returning from a redirect
+        const wasPendingRedirect = (() => { try { return sessionStorage.getItem("pendingGoogleRedirect") === "1"; } catch(_) { return false; } })();
+        if (wasPendingRedirect) {
+          showNotification("Completing sign-in...", "info");
+          try { sessionStorage.removeItem("pendingGoogleRedirect"); } catch(_) {}
+        }
+
         auth.getRedirectResult().then((result) => {
           if (result && result.user) {
             showNotification(`Welcome, ${result.user.displayName || "Chef"}! ☁️`, "success");
@@ -6506,7 +7163,11 @@
         }).catch((e) => {
           // Ignore "no pending redirect" — that's normal on non-redirect loads
           if (e.code !== "auth/no-auth-event" && e.code !== "auth/null-user") {
-            console.warn("Redirect sign-in error:", e.code);
+            console.warn("Redirect sign-in error:", e.code, e.message);
+            // Only show error to user if they were actually trying to sign in
+            if (wasPendingRedirect) {
+              showNotification("Sign-in failed. Please try again.", "error");
+            }
           }
         });
 
@@ -6578,13 +7239,26 @@
         try {
           const cloudState = getCloudStatePayload();
 
+          // --- Anti-cheat: cap kebabs at a plausible maximum ---
+          // Max theoretical income: ~1e12/s * 3600s/h * 24h * 365d ≈ 3.15e19 per year
+          // We cap at 1e15 as a reasonable beta ceiling (adjustable)
+          const MAX_CLOUD_KEBABS = 1e15;
+          const safeKebabs = Math.min(Math.floor(gameState.kebabs), MAX_CLOUD_KEBABS);
+
+          // --- Username validation: strip HTML, limit length, no empty ---
+          const rawUsername = (gameState.username || "").trim();
+          const safeUsername = rawUsername
+            .replace(/[<>"'&]/g, "")   // strip HTML special chars
+            .substring(0, 32)          // max 32 chars
+            || ("Chef_" + currentUser.uid.substring(0, 4)); // fallback if empty after strip
+
           await db
             .collection("players")
             .doc(currentUser.uid)
             .set(
               {
-                username: gameState.username,
-                kebabs: Math.floor(gameState.kebabs),
+                username: safeUsername,
+                kebabs: safeKebabs,
                 level: gameState.level,
                 currentCity: gameState.currentCity,
                 gameData: JSON.stringify(cloudState),
@@ -6594,6 +7268,13 @@
             );
         } catch (e) {
           console.error("Cloud save failed:", e);
+          // Show a non-intrusive save-failed indicator
+          const indicator = document.getElementById("save-failed-indicator");
+          if (indicator) {
+            indicator.classList.add("visible");
+            clearTimeout(indicator._hideTimer);
+            indicator._hideTimer = setTimeout(() => indicator.classList.remove("visible"), 6000);
+          }
         }
       }
 
@@ -6609,22 +7290,20 @@
           .sort((a, b) => b.kebabs - a.kebabs);
 
         const medals = ["🥇","🥈","🥉","4️⃣"];
-        listDiv.innerHTML = "";
-        localPlayers.forEach((p, index) => {
+        const rows = localPlayers.map((p, index) => {
           const isMe = p.id === "local-you";
-          listDiv.innerHTML += `
-            <div class="flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${isMe ? "bg-orange-50 border-orange-200" : "bg-white border-gray-100 hover:border-orange-100"}">
+          return `<div class="flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${isMe ? "bg-orange-50 border-orange-200" : "bg-white border-gray-100 hover:border-orange-100"}">
               <div class="flex items-center gap-2.5">
                 <span class="text-lg">${medals[index] || (index+1)}</span>
                 <div>
-                  <div class="font-black text-sm text-gray-800 ${isMe ? "text-orange-600" : ""}">${p.username}${isMe ? " (You)" : ""}</div>
+                  <div class="font-black text-sm ${isMe ? "text-orange-600" : "text-gray-800"}">${p.username}${isMe ? " (You)" : ""}</div>
                   <div class="text-xs font-bold text-gray-400">${p.kebabs.toLocaleString()} 🥙</div>
                 </div>
               </div>
               ${!isMe ? `<button onclick="openSocialModal('${p.id}','${p.username}')" class="bg-orange-100 hover:bg-orange-200 text-orange-700 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all">⚔️</button>` : ""}
-            </div>
-          `;
+            </div>`;
         });
+        listDiv.innerHTML = rows.join("");
 
         // Update rank stat
         const myRank = localPlayers.findIndex(p => p.id === "local-you") + 1;
@@ -6648,36 +7327,24 @@
             .limit(10)
             .get();
           listDiv.innerHTML = "";
+          const rows = [];
           let rank = 1;
           snapshot.forEach((doc) => {
             const p = doc.data();
-            listDiv.innerHTML += `
-                            <div class="flex justify-between p-3 bg-white/60 rounded-xl border border-orange-100 items-center shadow-sm animate-fade-in">
-                                <div class="flex items-center gap-3">
-                                    <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${rank++}</span>
-                                    <span class="font-bold text-sm text-gray-700">${p.username || "Unknown Player"}</span>
-                                </div>
-                                <div class="flex flex-col items-end">
-                                    <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()} </span>
-                                    <div class="flex gap-1.5 mt-1.5">
-                                        ${
-                                          doc.id !== currentUser?.uid &&
-                                          p.username
-                                            ? `
-                                            <button onclick="openSocialModal('${doc.id}', '${(p.username || "Unknown").replace(/'/g, "\\'")}')"
-                                                class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold transition-all">Interact</button>
-                                        `
-                                            : ""
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+            const isMe = doc.id === currentUser?.uid;
+            rows.push(`<div class="flex justify-between p-3 ${isMe ? "bg-orange-50 border-orange-200" : "bg-white/60 border-orange-100"} rounded-xl border items-center shadow-sm">
+              <div class="flex items-center gap-3">
+                <span class="w-6 h-6 flex items-center justify-center bg-orange-100 rounded-full text-[10px] font-bold text-orange-600">${rank++}</span>
+                <span class="font-bold text-sm ${isMe ? "text-orange-600" : "text-gray-700"}">${p.username || "Unknown"}${isMe ? " (You)" : ""}</span>
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="text-orange-600 font-black text-xs">${Math.floor(p.kebabs).toLocaleString()} 🥙</span>
+                ${!isMe && p.username ? `<button onclick="openSocialModal('${doc.id}','${(p.username||"").replace(/'/g,"\\'")}') " class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold mt-1 transition-all">Interact</button>` : ""}
+              </div>
+            </div>`);
           });
-          if (rank === 1) {
-            // No results from Firebase - fall back to local
-            renderLocalLeaderboard(listDiv);
-          }
+          if (rows.length === 0) { renderLocalLeaderboard(listDiv); return; }
+          listDiv.innerHTML = rows.join("");
         } catch (e) {
           console.error("Leaderboard load failed:", e);
           renderLocalLeaderboard(listDiv);
@@ -6701,14 +7368,45 @@
           );
           return;
         }
-        if (
-          !confirm(
-            `Prestige now for ${points} points?\n\nYou will restart from scratch (cities, upgrades, menu unlocks) and keep only prestige power:\n+${(points * 0.1).toFixed(1)}% Income Multiplier\n+${(points * 0.05).toFixed(1)}% Click Multiplier\n+${(points * 0.08).toFixed(1)}% XP Multiplier`,
-          )
-        ) {
+
+        // Show styled prestige confirmation modal instead of window.confirm
+        const modal = document.getElementById("prestige-modal");
+        const body  = document.getElementById("prestige-modal-body");
+        const confirmBtn = document.getElementById("prestige-modal-confirm");
+        const cancelBtn  = document.getElementById("prestige-modal-cancel");
+        if (!modal) {
+          // Fallback if modal not in DOM yet
+          if (!confirm(`Prestige now for ${points} points?`)) return;
+          _doPrestige(points);
           return;
         }
+        body.innerHTML = `
+          Prestige for <strong class="text-purple-700">${points} points</strong>?<br><br>
+          You restart from scratch — cities, upgrades, and menu unlocks reset.<br><br>
+          You keep your prestige power:<br>
+          <span class="text-green-600 font-bold">+${(points * 0.1).toFixed(1)}% Income</span> &nbsp;
+          <span class="text-blue-600 font-bold">+${(points * 0.05).toFixed(1)}% Click</span> &nbsp;
+          <span class="text-orange-600 font-bold">+${(points * 0.08).toFixed(1)}% XP</span>
+        `;
+        modal.classList.add("open");
 
+        // One-time listeners so they don't stack
+        const onConfirm = () => {
+          modal.classList.remove("open");
+          confirmBtn.removeEventListener("click", onConfirm);
+          cancelBtn.removeEventListener("click", onCancel);
+          _doPrestige(points);
+        };
+        const onCancel = () => {
+          modal.classList.remove("open");
+          confirmBtn.removeEventListener("click", onConfirm);
+          cancelBtn.removeEventListener("click", onCancel);
+        };
+        confirmBtn.addEventListener("click", onConfirm);
+        cancelBtn.addEventListener("click", onCancel);
+      };
+
+      function _doPrestige(points) {
         gameState.prestige.count++;
         gameState.prestige.totalPrestigeKebabs += gameState.totalKebabsEarned;
         gameState.prestige.prestigePoints += points;
@@ -6724,6 +7422,7 @@
           `🌟 PRESTIGE LEVEL ${gameState.prestige.count}! +${points} points!`,
           "success",
         );
+        postWorldEvent(`🌟 <b>${gameState.username || "A chef"}</b> reached Prestige ${gameState.prestige.count}!`);
         createLevelUpParticles();
         updateDisplay();
       };
@@ -7164,8 +7863,9 @@
       }
 
       function createFloatingKebabs() {
-        // Create floating background kebabs for visual effect
-        for (let i = 0; i < 10; i++) {
+        // Skip on mobile — saves GPU compositing
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+        for (let i = 0; i < 5; i++) {
           const kebab = document.createElement("div");
           kebab.className = "floating-kebab";
           kebab.textContent = "🥙";
@@ -7180,16 +7880,41 @@
         const authStatus = document.getElementById("auth-status");
         if (authStatus) {
           if (firebaseEnabled && currentUser) {
-            authStatus.innerHTML = `Welcome, ${gameState.username}! <button onclick="auth.signOut()" class="text-red-500 hover:underline ml-3">Sign Out</button>`;
+            authStatus.innerHTML = `Welcome, ${gameState.username}! <button onclick="auth.signOut()" class="text-red-300 hover:text-red-100 underline ml-3">Sign Out</button> <button onclick="document.getElementById('privacy-modal').style.display='flex'" class="text-white/60 hover:text-white/90 text-xs underline ml-2 transition-colors">Privacy</button>`;
           } else {
-            authStatus.innerHTML = `Guest Session <button onclick="loginWithGoogle()" class="text-orange-500 hover:underline ml-3">Sign In with Google</button>`;
+            authStatus.innerHTML = `Guest Session <button onclick="loginWithGoogle()" class="text-orange-500 hover:underline ml-3">Sign In with Google</button> <button onclick="document.getElementById('privacy-modal').style.display='flex'" class="text-white/60 hover:text-white/90 text-xs underline ml-2 transition-colors">Privacy</button>`;
           }
         }
+        // Keep settings tab in sync
+        updateSettingsAuthUI();
       }
 
       // Firebase stubs
+      let _attacksUnsubscribe = null;
       function listenForAttacks() {
-        /* Firebase implementation */
+        if (!firebaseEnabled || !db || !currentUser) return;
+        // Unsubscribe any previous listener
+        if (_attacksUnsubscribe) { _attacksUnsubscribe(); _attacksUnsubscribe = null; }
+
+        const cutoff = new Date(Date.now() - 60000); // only events from last 60s
+        _attacksUnsubscribe = db.collection("players").doc(currentUser.uid)
+          .collection("attack_notifications")
+          .where("timestamp", ">", cutoff)
+          .orderBy("timestamp", "desc")
+          .limit(5)
+          .onSnapshot((snap) => {
+            snap.docChanges().forEach((change) => {
+              if (change.type !== "added") return;
+              const d = change.doc.data();
+              if (d.type === "attacked") {
+                showNotification(`⚔️ ${d.attackerName || "Someone"} attacked you! Lost ${(d.stolen || 0).toLocaleString()} 🥙`, "error");
+              } else if (d.type === "defended") {
+                showNotification(`🛡️ Your shield blocked an attack from ${d.attackerName || "someone"}!`, "success");
+              }
+              // Delete the notification after reading so it doesn't re-fire
+              change.doc.ref.delete().catch(() => {});
+            });
+          }, () => {}); // Silent error — non-critical
       }
       function listenForTrades() {
         refreshTradeMarket(true);
@@ -7288,20 +8013,21 @@
         // Start bot chat simulation in local mode
         startBotChat();
 
-        // Update online count with a simulated number
+        // In local mode, show dash for online count — real count comes from updateOnlineCount()
         const onlineEl = document.getElementById("online-count");
-        if (onlineEl) {
-          const base = currentChatRoom === "city" ? 8 : 47;
-          onlineEl.textContent = `${base + Math.floor(Math.random() * 12)} online`;
-        }
+        if (onlineEl && !firebaseEnabled) onlineEl.textContent = "— online";
         const statOnline = document.getElementById("comm-stat-online");
-        if (statOnline) statOnline.textContent = `${47 + Math.floor(Math.random() * 30)}`;
+        if (statOnline && !firebaseEnabled) statOnline.textContent = "—";
       }
+      let _worldFeedInterval = null;
       function listenForWorldFeed() {
         const feedDiv = document.getElementById("world-feed");
         if (!feedDiv) return;
 
-        const worldEvents = [
+        // Clear any previous rotation interval
+        if (_worldFeedInterval) { clearInterval(_worldFeedInterval); _worldFeedInterval = null; }
+
+        const fallbackEvents = [
           { icon: "🏆", text: "DonerKing reached Prestige 5!" },
           { icon: "🌍", text: "WrapWizard unlocked Tokyo!" },
           { icon: "💰", text: "GrillNinja earned 1,000,000 kebabs!" },
@@ -7323,33 +8049,42 @@
         }
 
         if (firebaseEnabled && db) {
-          // Listen for real leaderboard events
-          db.collection("players")
-            .orderBy("lastSeen", "desc")
+          // Try real world_events first, fall back to player activity
+          db.collection("world_events")
+            .orderBy("timestamp", "desc")
             .limit(8)
             .get()
             .then((snap) => {
-              const events = [];
-              snap.forEach((doc) => {
-                const p = doc.data();
-                if (p.username && p.kebabs) {
-                  events.push({ icon: "🥙", text: `${p.username} has ${Math.floor(p.kebabs).toLocaleString()} kebabs` });
-                }
-              });
-              if (events.length > 0) {
+              if (!snap.empty) {
+                const events = [];
+                snap.forEach((doc) => {
+                  const d = doc.data();
+                  events.push({ icon: "🌍", text: d.message || "" });
+                });
                 renderFeed(events);
               } else {
-                renderFeed(worldEvents.slice(0, 5));
+                // Fall back to recent player activity
+                db.collection("players").orderBy("lastSeen", "desc").limit(8).get()
+                  .then((pSnap) => {
+                    const events = [];
+                    pSnap.forEach((doc) => {
+                      const p = doc.data();
+                      if (p.username && p.kebabs) {
+                        events.push({ icon: "🥙", text: `${p.username} has ${Math.floor(p.kebabs).toLocaleString()} kebabs` });
+                      }
+                    });
+                    renderFeed(events.length > 0 ? events : fallbackEvents.slice(0, 5));
+                  })
+                  .catch(() => renderFeed(fallbackEvents.slice(0, 5)));
               }
             })
-            .catch(() => renderFeed(worldEvents.slice(0, 5)));
+            .catch(() => renderFeed(fallbackEvents.slice(0, 5)));
         } else {
-          // Shuffle and show simulated events
-          const shuffled = [...worldEvents].sort(() => Math.random() - 0.5).slice(0, 5);
+          const shuffled = [...fallbackEvents].sort(() => Math.random() - 0.5).slice(0, 5);
           renderFeed(shuffled);
-          // Rotate events every 30 seconds
-          setInterval(() => {
-            const next = [...worldEvents].sort(() => Math.random() - 0.5).slice(0, 5);
+          // Rotate every 30s — store reference so it can be cleared
+          _worldFeedInterval = setInterval(() => {
+            const next = [...fallbackEvents].sort(() => Math.random() - 0.5).slice(0, 5);
             renderFeed(next);
           }, 30000);
         }
@@ -7410,19 +8145,18 @@
               if (statOnline) statOnline.textContent = String(count);
             })
             .catch(() => {
-              // Fallback to simulated count
-              const simCount = 47 + Math.floor(Math.random() * 30);
+              // Query failed — show dash rather than a fake number
               const onlineEl = document.getElementById("online-count");
-              if (onlineEl) onlineEl.textContent = `${simCount} online`;
+              if (onlineEl) onlineEl.textContent = "— online";
               const statOnline = document.getElementById("comm-stat-online");
-              if (statOnline) statOnline.textContent = String(simCount);
+              if (statOnline) statOnline.textContent = "—";
             });
         } else {
-          const simCount = 47 + Math.floor(Math.random() * 30);
+          // Offline / local mode — show dash, not a fake number
           const onlineEl = document.getElementById("online-count");
-          if (onlineEl) onlineEl.textContent = `${simCount} online`;
+          if (onlineEl) onlineEl.textContent = "— online";
           const statOnline = document.getElementById("comm-stat-online");
-          if (statOnline) statOnline.textContent = String(simCount);
+          if (statOnline) statOnline.textContent = "—";
         }
       }
       function openSocialModal(id, name) {
@@ -7438,7 +8172,14 @@
         modal.classList.remove("hidden");
       }
       function postWorldEvent(message) {
-        /* Firebase implementation */
+        if (!firebaseEnabled || !db || !currentUser) return;
+        // Write to world_events collection; keep last 50, auto-expire after 1 hour
+        db.collection("world_events").add({
+          message,
+          username: gameState.username || "Chef",
+          city: gameState.currentCity,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {}); // Silent fail — world feed is non-critical
       }
 
       function getTradeResourceIcon(resource) {
@@ -8674,11 +9415,25 @@
                 lastAttackAt: firebase.firestore.FieldValue.serverTimestamp(),
                 shieldUntil: gameState.pvpProtection.shieldUntil || 0,
               });
+              // Write attack notification to target's subcollection (outside transaction — non-critical)
+              const notifType = (newbieProtected || targetShieldUntil > Date.now()) ? "defended" : "attacked";
+              db.collection("players").doc(selectedTargetPlayer.id)
+                .collection("attack_notifications").add({
+                  type: notifType,
+                  attackerName: gameState.username || "Unknown",
+                  stolen: stolenFromTarget,
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                }).catch(() => {});
             });
             gameState.kebabs += reward;
           } catch (e) {
             console.error("PvP transaction failed:", e);
-            gameState.kebabs += reward;
+            // Do NOT give reward on failure — refund the cost instead to avoid desync
+            gameState.kebabs += cost;
+            showNotification("Attack failed — connection error. Cost refunded.", "error");
+            updateDisplay();
+            closeSocialModal();
+            return;
           }
         } else {
           gameState.kebabs += reward;
@@ -8904,12 +9659,7 @@
 
       // Initialize
       function initGame() {
-        console.log("Initializing game...");
         initDOMElements();
-        console.log("DOM elements:", {
-          upgradesList: !!upgradesList,
-          achievementsList: !!achievementsList,
-        });
         createFloatingKebabs();
         setupTabNavigation();
         setupEventListeners();
@@ -8924,7 +9674,6 @@
         initializeSessionGoals();
         ensureCityContracts();
         generateDailyQuests();
-        console.log("Rendering upgrades and achievements...");
         achievementsDirty = true; // Force initial render
         renderUpgrades();
         renderAchievements();
@@ -8956,22 +9705,32 @@
         startChatClearTimer();
         listenForWorldFeed();
         updateOnlineCount();
-        console.log("Initialization complete");
 
         lastFrameTime = Date.now();
         incomeCache = calculateIncomeBreakdown();
+
+        // Hide loading screen now that the game is ready
+        const loadingScreen = document.getElementById("loading-screen");
+        if (loadingScreen) {
+          // Small delay so the progress bar animation finishes
+          setTimeout(() => loadingScreen.classList.add("hidden-screen"), 300);
+        }
+
+        // Sync offline indicator state now that DOM exists
+        _updateOfflineIndicator();
 
         // Start simulation and render loops now that DOM + state are ready
         if (!_gameLoopInterval) _gameLoopInterval = setInterval(gameLoop, SIM_TICK_MS);
         if (!_renderLoopInterval) _renderLoopInterval = setInterval(renderLoop, RENDER_TICK_MS);
 
-        // Auto-save every 30 seconds
-        setInterval(autoSave, 30000);
+        // Auto-save every 30 seconds — store reference to prevent duplicate intervals
+        if (!_autoSaveInterval) _autoSaveInterval = setInterval(autoSave, 30000);
       }
 
       // Loop interval handles — declared before initGame so they're in scope
       let _gameLoopInterval = null;
       let _renderLoopInterval = null;
+      let _autoSaveInterval = null;
 
       function switchTab(tabName) {
         document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
@@ -9014,6 +9773,9 @@
           refreshTradeMarket();
           renderTradeMarket();
         }
+        if (tabName === 'settings') {
+          initSettingsTab();
+        }
       }
 
       // Run initialization when DOM is ready with slight delay to ensure elements are parsed
@@ -9032,21 +9794,444 @@
           lastFrameTime = Date.now();
         }
       });
+
+      // ============================================
+      // STREAK UI
+      // ============================================
+      function updateStreakUI() {
+        const countEl  = document.getElementById("streak-count");
+        const timerEl  = document.getElementById("streak-timer");
+        const barEl    = document.getElementById("streak-progress-bar");
+        if (!countEl) return;
+
+        countEl.textContent = gameState.dailyStreak || 1;
+
+        const oneDay = 24 * 60 * 60 * 1000;
+        const elapsed = Date.now() - (gameState.lastDailyRewardTime || 0);
+        const remaining = Math.max(0, oneDay - elapsed);
+
+        if (remaining <= 0) {
+          if (timerEl) timerEl.textContent = "Ready!";
+          if (barEl) barEl.style.width = "100%";
+        } else {
+          const h = Math.floor(remaining / 3600000);
+          const m = Math.floor((remaining % 3600000) / 60000);
+          if (timerEl) timerEl.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+          if (barEl) barEl.style.width = `${Math.round((elapsed / oneDay) * 100)}%`;
+        }
+      }
+
+      // ============================================
+      // STORY MODAL
+      // ============================================
+      function openStoryModal() {
+        const modal = document.getElementById("story-modal");
+        const list  = document.getElementById("story-chapters-list");
+        if (!modal || !list) return;
+
+        list.innerHTML = "";
+        const order = ["intro","chapter1","chapter2","chapter3","chapter4","chapter5"];
+        order.forEach((id, i) => {
+          const ch = storyChapters[id];
+          if (!ch) return;
+          const unlocked = gameState.story.unlockedChapters.includes(id);
+          const div = document.createElement("div");
+          div.className = `story-chapter rounded-2xl p-5 border-2 ${unlocked ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-gray-50 locked"}`;
+          div.innerHTML = `
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">${unlocked ? "📖" : "🔒"}</span>
+              <div>
+                <div class="font-black text-gray-800">Chapter ${i + 1}: ${ch.title}</div>
+                ${!unlocked ? '<div class="text-xs text-gray-400 font-semibold">Keep playing to unlock</div>' : ""}
+              </div>
+            </div>
+            ${unlocked ? `<p class="text-sm text-gray-600 leading-relaxed">${ch.text}</p>` : ""}
+          `;
+          list.appendChild(div);
+        });
+
+        modal.classList.add("open");
+        updateStoryProgress();
+      }
+
+      function updateStoryProgress() {
+        const unlocked = gameState.story.unlockedChapters.length;
+        const total = 6;
+        const countEl = document.getElementById("story-chapters-unlocked");
+        const barEl   = document.getElementById("story-progress-bar");
+        if (countEl) countEl.textContent = unlocked;
+        if (barEl) barEl.style.width = `${Math.round((unlocked / total) * 100)}%`;
+      }
+
+      // ============================================
+      // ONBOARDING
+      // ============================================
+      function initOnboarding() {
+        const seen = localStorage.getItem("kebabOnboardingSeen");
+        if (seen) return;
+
+        const modal    = document.getElementById("onboarding-modal");
+        const nextBtn  = document.getElementById("onboarding-next");
+        const skipBtn  = document.getElementById("onboarding-skip");
+        const steps    = modal ? modal.querySelectorAll(".onboarding-step") : [];
+        const dots     = modal ? modal.querySelectorAll(".onboarding-dot") : [];
+        if (!modal || steps.length === 0) return;
+
+        let current = 0;
+
+        function goTo(n) {
+          steps.forEach((s, i) => s.classList.toggle("active", i === n));
+          dots.forEach((d, i) => {
+            d.classList.toggle("bg-orange-500", i === n);
+            d.classList.toggle("bg-gray-200", i !== n);
+          });
+          current = n;
+          if (nextBtn) nextBtn.textContent = n === steps.length - 1 ? "Let's Go! 🥙" : "Next →";
+        }
+
+        function close() {
+          modal.classList.remove("open");
+          localStorage.setItem("kebabOnboardingSeen", "1");
+        }
+
+        nextBtn && nextBtn.addEventListener("click", () => {
+          if (current < steps.length - 1) goTo(current + 1);
+          else close();
+        });
+        skipBtn && skipBtn.addEventListener("click", close);
+
+        // Show after a short delay so the game loads first
+        setTimeout(() => { modal.classList.add("open"); goTo(0); }, 800);
+      }
+
+      // ============================================
+      // SOUND TOGGLE
+      // ============================================
+      let _soundEnabled = true;
+
+      function initSoundToggle() {
+        const toggle = document.getElementById("soundToggle");
+        if (!toggle) return;
+        const saved = localStorage.getItem("kebabSoundEnabled");
+        _soundEnabled = saved === null ? true : saved === "1";
+        toggle.checked = _soundEnabled;
+        toggle.addEventListener("change", () => {
+          _soundEnabled = toggle.checked;
+          localStorage.setItem("kebabSoundEnabled", _soundEnabled ? "1" : "0");
+        });
+      }
+
+      // Patch playClickSound to respect the toggle
+      const _origPlayClickSound = typeof playClickSound === "function" ? playClickSound : null;
+      window.playClickSound = function() {
+        if (!_soundEnabled) return;
+        if (_origPlayClickSound) _origPlayClickSound();
+      };
+
+      // ============================================
+      // EXPORT / IMPORT SAVE
+      // ============================================
+      function exportSave() {
+        try {
+          const data = localStorage.getItem(getSaveKey());
+          if (!data) { showNotification("Nothing to export yet!", "error"); return; }
+          const encoded = btoa(unescape(encodeURIComponent(data)));
+          // Copy to clipboard
+          navigator.clipboard.writeText(encoded).then(() => {
+            showNotification("✅ Save copied to clipboard!", "success");
+          }).catch(() => {
+            // Fallback: show in a prompt
+            prompt("Copy your save code:", encoded);
+          });
+        } catch(e) {
+          showNotification("Export failed: " + e.message, "error");
+        }
+      }
+
+      function importSave() {
+        const code = prompt("Paste your save code:");
+        if (!code || !code.trim()) return;
+        try {
+          const json = decodeURIComponent(escape(atob(code.trim())));
+          JSON.parse(json); // validate it's real JSON before writing
+          localStorage.setItem(getSaveKey(), json);
+          showNotification("✅ Save imported! Reloading…", "success");
+          setTimeout(() => location.reload(), 1200);
+        } catch(e) {
+          showNotification("❌ Invalid save code.", "error");
+        }
+      }
+
+      // ============================================
+      // KEBAB SPIN (SLOT MACHINE)
+      // ============================================
+      const KS_SYMBOLS = ["🥙","🔥","💎","🌟","🧆","🍞","🥩"];
+      const KS_PAYOUTS = {
+        "🥙": 10, "🔥": 8, "💎": 20, "🌟": 15, "🧆": 5, "🍞": 4, "🥩": 6
+      };
+      let _ksSpinning = false;
+
+      window.spinKebabSlot = function() {
+        if (_ksSpinning) return;
+        const betInput = document.getElementById("ks-bet");
+        const bet = Math.max(10, parseInt(betInput?.value) || 50);
+        if (gameState.kebabs < bet) {
+          document.getElementById("ks-result").textContent = "❌ Not enough kebabs!";
+          document.getElementById("ks-result").className = "text-center font-black text-xl py-3 rounded-2xl text-red-300";
+          return;
+        }
+        gameState.kebabs -= bet;
+        updateDisplay();
+        _ksSpinning = true;
+        const spinBtn = document.getElementById("ks-spin-btn");
+        if (spinBtn) { spinBtn.disabled = true; spinBtn.textContent = "Spinning…"; }
+
+        // Animate reels
+        const reels = [0,1,2].map(i => document.getElementById(`ks-reel-${i}`));
+        let ticks = 0;
+        const maxTicks = 18;
+        const interval = setInterval(() => {
+          reels.forEach(r => { if (r) r.textContent = KS_SYMBOLS[Math.floor(Math.random() * KS_SYMBOLS.length)]; });
+          ticks++;
+          if (ticks >= maxTicks) {
+            clearInterval(interval);
+            // Final result
+            const result = [0,1,2].map(() => KS_SYMBOLS[Math.floor(Math.random() * KS_SYMBOLS.length)]);
+            reels.forEach((r, i) => { if (r) r.textContent = result[i]; });
+            _ksResolve(bet, result);
+          }
+        }, 80);
+      };
+
+      function _ksResolve(bet, result) {
+        const resultDiv = document.getElementById("ks-result");
+        const spinBtn = document.getElementById("ks-spin-btn");
+        let winnings = 0;
+        let msg = "";
+
+        if (result[0] === result[1] && result[1] === result[2]) {
+          // Triple match
+          const mult = KS_PAYOUTS[result[0]] || 5;
+          winnings = Math.floor(bet * mult);
+          msg = `🎉 JACKPOT! ${result[0]}${result[0]}${result[0]} — ${mult}x = +${winnings.toLocaleString()} 🥙`;
+          resultDiv.className = "text-center font-black text-xl py-3 rounded-2xl bg-yellow-400/30 text-yellow-200";
+          gameState.minigameWins++;
+          createLevelUpParticles();
+          showNotification(`🎰 Jackpot! +${winnings.toLocaleString()} 🥙`, "success");
+        } else if (result[0] === result[1] || result[1] === result[2] || result[0] === result[2]) {
+          // Two match
+          winnings = Math.floor(bet * 1.5);
+          msg = `✅ Two of a kind! +${winnings.toLocaleString()} 🥙`;
+          resultDiv.className = "text-center font-black text-xl py-3 rounded-2xl bg-green-400/20 text-green-200";
+          gameState.minigameWins++;
+        } else {
+          msg = `💸 No match. Lost ${bet.toLocaleString()} 🥙`;
+          resultDiv.className = "text-center font-black text-xl py-3 rounded-2xl text-red-300";
+        }
+
+        if (winnings > 0) {
+          gameState.kebabs += winnings;
+          gameState.totalKebabsEarned += winnings;
+        }
+        resultDiv.textContent = msg;
+        if (spinBtn) { spinBtn.disabled = false; spinBtn.textContent = "🎰 SPIN!"; }
+        _ksSpinning = false;
+        updateDisplay();
+      }
+
+      // ============================================
+      // SETTINGS TAB
+      // ============================================
+      let _settingsTabInited = false;
+      function initSettingsTab() {
+        // Only wire up event listeners once
+        if (!_settingsTabInited) {
+          _settingsTabInited = true;
+          // Sync sound toggle
+          const settingsSound = document.getElementById("settings-sound");
+          if (settingsSound) {
+            settingsSound.addEventListener("change", () => {
+              _soundEnabled = settingsSound.checked;
+              localStorage.setItem("kebabSoundEnabled", _soundEnabled ? "1" : "0");
+              const legacyToggle = document.getElementById("soundToggle");
+              if (legacyToggle) legacyToggle.checked = _soundEnabled;
+            });
+          }
+          // Sync shake toggle
+          const settingsShake = document.getElementById("settings-shake");
+          if (settingsShake) {
+            settingsShake.addEventListener("change", () => {
+              gameState.visual.screenShake = settingsShake.checked;
+              const legacyToggle = document.getElementById("screenShakeToggle");
+              if (legacyToggle) legacyToggle.checked = settingsShake.checked;
+            });
+          }
+          // Sync notif level
+          const settingsNotif = document.getElementById("settings-notif");
+          if (settingsNotif) {
+            settingsNotif.addEventListener("change", () => {
+              gameState.notificationLevel = settingsNotif.value;
+              const legacySelect = document.getElementById("notifLevelSelect");
+              if (legacySelect) legacySelect.value = settingsNotif.value;
+            });
+          }
+        }
+        // Always refresh displayed values when tab opens
+        const settingsSound = document.getElementById("settings-sound");
+        if (settingsSound) settingsSound.checked = _soundEnabled;
+        const settingsShake = document.getElementById("settings-shake");
+        if (settingsShake) settingsShake.checked = !!gameState.visual?.screenShake;
+        const settingsNotif = document.getElementById("settings-notif");
+        if (settingsNotif) settingsNotif.value = gameState.notificationLevel || "normal";
+        updateSettingsAuthUI();
+        updatePushNotifStatus();
+        updateSettingsLastSave();
+      }
+
+      function updateSettingsAuthUI() {
+        const statusEl = document.getElementById("settings-auth-status");
+        const signinBtn = document.getElementById("settings-signin-btn");
+        const signoutBtn = document.getElementById("settings-signout-btn");
+        if (!statusEl) return;
+        if (currentUser) {
+          statusEl.textContent = `Signed in as ${currentUser.displayName || gameState.username || "Chef"}`;
+          if (signinBtn) signinBtn.classList.add("hidden");
+          if (signoutBtn) signoutBtn.classList.remove("hidden");
+        } else {
+          statusEl.textContent = gameState.username ? `Playing as ${gameState.username} (local)` : "Not signed in — progress saved locally only";
+          if (signinBtn) signinBtn.classList.remove("hidden");
+          if (signoutBtn) signoutBtn.classList.add("hidden");
+        }
+      }
+
+      function updateSettingsLastSave() {
+        const el = document.getElementById("settings-last-save");
+        if (!el) return;
+        if (gameState.lastSaveTime) {
+          const d = new Date(gameState.lastSaveTime);
+          el.textContent = d.toLocaleTimeString();
+        } else {
+          el.textContent = "Never";
+        }
+      }
+
+      window.logoutUser = function() {
+        if (firebaseEnabled && auth) {
+          auth.signOut().then(() => {
+            currentUser = null;
+            showNotification("Signed out.", "info");
+            updateSettingsAuthUI();
+            updateAuthUI();
+          });
+        }
+      };
+
+      // ============================================
+      // PUSH NOTIFICATIONS
+      // ============================================
+      function updatePushNotifStatus() {
+        const statusEl = document.getElementById("push-notif-status");
+        const btn = document.getElementById("push-notif-btn");
+        if (!statusEl) return;
+        if (!("Notification" in window)) {
+          statusEl.textContent = "Status: Not supported in this browser";
+          if (btn) btn.disabled = true;
+          return;
+        }
+        const perm = Notification.permission;
+        if (perm === "granted") {
+          statusEl.textContent = "Status: ✅ Enabled";
+          statusEl.className = "text-sm font-bold text-green-600 mb-3";
+          if (btn) { btn.textContent = "✅ Notifications On"; btn.disabled = true; }
+        } else if (perm === "denied") {
+          statusEl.textContent = "Status: ❌ Blocked — allow in browser settings";
+          statusEl.className = "text-sm font-bold text-red-500 mb-3";
+          if (btn) { btn.textContent = "Blocked by browser"; btn.disabled = true; }
+        } else {
+          statusEl.textContent = "Status: Not enabled yet";
+          statusEl.className = "text-sm font-bold text-gray-500 mb-3";
+          if (btn) { btn.textContent = "Enable Push Notifications"; btn.disabled = false; }
+        }
+      }
+
+      window.requestPushPermission = async function() {
+        if (!("Notification" in window)) return;
+        const perm = await Notification.requestPermission();
+        updatePushNotifStatus();
+        if (perm === "granted") {
+          showNotification("🔔 Push notifications enabled!", "success");
+          schedulePushChecks();
+        }
+      };
+
+      function sendPushNotification(title, body, tag = "kebab") {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        if (document.visibilityState === "visible") return; // Don't push when tab is open
+        try {
+          new Notification(title, { body, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥙</text></svg>", tag });
+        } catch(e) {}
+      }
+
+      let _pushCheckInterval = null;
+      function schedulePushChecks() {
+        if (_pushCheckInterval) return;
+        _pushCheckInterval = setInterval(() => {
+          if (Notification.permission !== "granted") return;
+          // Supply low check
+          const anyLow = gameState.supply.meat.stock < 20 || gameState.supply.bread.stock < 20 || gameState.supply.vegetables.stock < 20;
+          if (anyLow) {
+            sendPushNotification("🥙 Kebab Clicker — Supplies Low!", "Your ingredients are running out. Restock now to keep earning!", "supply-low");
+          }
+          // Daily reward check
+          const oneDay = 24 * 60 * 60 * 1000;
+          if (Date.now() - (gameState.lastDailyRewardTime || 0) > oneDay) {
+            sendPushNotification("🎁 Daily Reward Ready!", "Come back to Kebab Clicker and claim your daily bonus!", "daily-reward");
+          }
+        }, 5 * 60 * 1000); // Check every 5 minutes
+      }
+
+      // Start push checks if already permitted
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        schedulePushChecks();
+      }
+      const _origInitGame = initGame;
+      // We patch initGame by appending calls after it runs
+      const _patchedInitGame = function() {
+        _origInitGame();
+        initOnboarding();
+        initSoundToggle();
+        updateStreakUI();
+        updateStoryProgress();
+        initSettingsTab();
+      };
+      // Replace the startup call
+      if (document.readyState === "loading") {
+        document.removeEventListener("DOMContentLoaded", startGame);
+        document.addEventListener("DOMContentLoaded", () => setTimeout(_patchedInitGame, 100));
+      }
+      // If already loaded, the original startGame already ran — just run the extras
+      if (document.readyState !== "loading") {
+        // initGame already ran; just init the new features
+        setTimeout(() => {
+          initOnboarding();
+          initSoundToggle();
+          updateStreakUI();
+          updateStoryProgress();
+          initSettingsTab();
+        }, 200);
+      }
     </script>
 
     <!-- Mobile Bottom Navigation -->
-    <div class="mobile-bottom-nav">
+    <div class="mobile-bottom-nav" id="mobileBottomNav">
       <button data-tab="restaurants" class="active">
         <span class="nav-icon">🏪</span>
         <span>Shop</span>
       </button>
-      <button data-tab="menu">
-        <span class="nav-icon">📋</span>
-        <span>Menu</span>
-      </button>
       <button data-tab="supply">
         <span class="nav-icon">🚚</span>
         <span>Supply</span>
+        <span id="supply-nav-badge" class="hidden absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span>
       </button>
       <button data-tab="cities">
         <span class="nav-icon">🌍</span>
@@ -9060,6 +10245,22 @@
         <span class="nav-icon">🤝</span>
         <span>Social</span>
       </button>
+      <button data-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </button>
     </div>
   </body>
+  <script>
+    // Register service worker for offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('SW registered:', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed:', err);
+        });
+      });
+    }
+  </script>
 </html>

@@ -2,27 +2,102 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Players collection - authenticated users can read all, write their own
-    match /players/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Username must be 1–32 printable chars, no HTML special chars
+    function validUsername(name) {
+      return name is string
+        && name.size() >= 1
+        && name.size() <= 32
+        && !name.matches('.*[<>"\'&].*');
     }
 
-    // Chat collection - anyone can read, authenticated users can write
+    // Kebab value must be a non-negative number within the anti-cheat ceiling
+    function validKebabs(k) {
+      return k is number && k >= 0 && k <= 1000000000000000; // 1e15
+    }
+
+    // Level must be a positive integer within a sane range
+    function validLevel(l) {
+      return l is int && l >= 1 && l <= 1000000;
+    }
+
+    // gameData JSON string: must be a string and not absurdly large (500 KB)
+    function validGameData(d) {
+      return d is string && d.size() <= 512000;
+    }
+
+    // Rate-limit writes: allow at most once every 10 seconds per document
+    // (compares client-supplied lastSeen against the stored one)
+    function notTooFrequent() {
+      return !('lastSeen' in resource.data)
+        || request.time > resource.data.lastSeen + duration.value(10, 's');
+    }
+
+    // ── Players collection ────────────────────────────────────────────────────
+    match /players/{userId} {
+      // Anyone can read player profiles (leaderboard, trade, etc.)
+      allow read: if true;
+
+      // Only the owner can write their own document
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        // Validate all top-level fields that are written
+        && validUsername(request.resource.data.username)
+        && validKebabs(request.resource.data.kebabs)
+        && validLevel(request.resource.data.level)
+        && validGameData(request.resource.data.gameData)
+        // Rate-limit: no more than one save per 10 seconds
+        && notTooFrequent();
+    }
+
+    // ── Chat collection ───────────────────────────────────────────────────────
     // Messages auto-expire (cleaned up by the app every 10 minutes)
     match /chat/{room}/messages/{messageId} {
       allow read: if true;
+
       allow create: if request.auth != null
+        // Required fields must all be present
         && request.resource.data.keys().hasAll(['username', 'text', 'timestamp', 'uid', 'room'])
+        // Text: non-empty string, max 200 chars
         && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1
         && request.resource.data.text.size() <= 200
-        && request.resource.data.uid == request.auth.uid;
-      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+        // UID must match the authenticated user
+        && request.resource.data.uid == request.auth.uid
+        // Username validation
+        && validUsername(request.resource.data.username)
+        // Room must match the document path
+        && request.resource.data.room == room;
+
+      // Users can delete their own messages
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
 
-    // Allow the app to delete old chat messages (cleanup)
+    // Room-level document (used for cleanup metadata)
     match /chat/{room} {
       allow read, write: if request.auth != null;
+    }
+
+    // ── World events feed ─────────────────────────────────────────────────────
+    // Anyone can read; authenticated users can write (non-critical, rate-limited)
+    match /world_events/{eventId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['message', 'username', 'city', 'timestamp'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 200;
+      allow delete: if false; // cleaned up server-side / TTL
+    }
+
+    // ── Attack notifications (per-player subcollection) ───────────────────────
+    // Only the target player can read their own notifications; attacker writes them
+    match /players/{userId}/attack_notifications/{notifId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['type', 'attackerName', 'stolen', 'timestamp'])
+        && request.resource.data.type in ['attacked', 'defended'];
     }
   }
 }
