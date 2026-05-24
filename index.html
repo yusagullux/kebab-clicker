@@ -130,6 +130,14 @@
         }
       }
 
+      /* On mobile, disable the continuous glow animation to save GPU */
+      @media (max-width: 768px) {
+        .kebab-button.glowing {
+          animation: none !important;
+          box-shadow: 0 0 20px rgba(251, 146, 60, 0.4);
+        }
+      }
+
       @keyframes shake {
         0%,
         100% {
@@ -182,6 +190,13 @@
 
       .kebab-button.glowing {
         animation: glow 2s ease-in-out infinite;
+      }
+
+      /* Promote kebab button to its own GPU layer for smooth tapping */
+      .kebab-button {
+        will-change: transform;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
       }
 
       .click-particle {
@@ -356,16 +371,49 @@
 
       /* Glassmorphism Refinement */
       .glass-card {
-        background: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .glass-card:hover {
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+      }
+
+      /* Disable all backdrop-blur on mobile */
+      @media (max-width: 768px) {
+        .glass-card {
+          background: rgba(255, 255, 255, 0.97) !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        .mobile-bottom-nav {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          background: rgba(255, 255, 255, 0.98) !important;
+        }
+        [class*="backdrop-blur"] {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+        /* Disable hover transitions on mobile — they cause jank */
+        .glass-card:hover {
+          transform: none !important;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+        }
+        button:hover:not(:disabled) {
+          transform: none !important;
+        }
+        .upgrade-item:hover {
+          transform: none !important;
+        }
+        .city-card:hover {
+          transform: none !important;
+        }
       }
 
       .city-card {
@@ -460,9 +508,7 @@
           left: 0;
           right: 0;
           z-index: 40;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.98);
           border-top: 1px solid rgba(249, 115, 22, 0.15);
           padding: 0.25rem 0;
           padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
@@ -751,6 +797,11 @@
         animation: fadeInTab 0.25s ease-out;
       }
 
+      /* Hidden tabs — skip rendering entirely */
+      .tab-content.hidden {
+        content-visibility: auto;
+      }
+
       #tabContent {
         scroll-margin-top: 1rem;
       }
@@ -912,7 +963,7 @@
 
   <body
     class="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100"
-    style="touch-action: manipulation"
+    style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
   >
     <!-- Loading screen — hidden once initGame() completes -->
     <div id="loading-screen">
@@ -927,6 +978,19 @@
 
     <!-- Save-failed indicator -->
     <div id="save-failed-indicator">⚠️ Cloud save failed — progress saved locally</div>
+
+    <!-- Offline Earnings Modal -->
+    <div id="offline-modal" class="game-modal" role="dialog" aria-modal="true" aria-labelledby="offline-modal-title">
+      <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+        <div class="text-5xl mb-3">🌙</div>
+        <h2 id="offline-modal-title" class="text-2xl font-black text-gray-800 mb-2">Welcome Back!</h2>
+        <p id="offline-modal-body" class="text-sm text-gray-600 mb-2 leading-relaxed"></p>
+        <div id="offline-modal-bonus" class="hidden bg-green-50 border border-green-200 rounded-2xl p-3 mb-5 text-sm font-bold text-green-700"></div>
+        <button id="offline-modal-ok" class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-black py-3 rounded-2xl transition-all shadow-lg">
+          Let's Go! 🥙
+        </button>
+      </div>
+    </div>
 
     <!-- Prestige confirmation modal -->
     <div id="prestige-modal" role="dialog" aria-modal="true" aria-labelledby="prestige-modal-title">
@@ -1126,6 +1190,11 @@
               </div>
             </div>
           </div>
+
+          <!-- Settings gear — visible on mobile only (desktop uses tab nav) -->
+          <button onclick="switchTab('settings')" class="flex-shrink-0 sm:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-orange-100 text-gray-500 hover:text-orange-600 transition-all" aria-label="Settings">
+            ⚙️
+          </button>
         </div>
       </header>
 
@@ -1183,6 +1252,7 @@
             <button
               id="kebabButton"
               class="kebab-button glowing w-36 h-36 sm:w-44 sm:h-44 lg:w-72 lg:h-72 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-red-600 border-6 sm:border-8 lg:border-10 border-orange-800 text-5xl sm:text-6xl lg:text-8xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-200 shadow-[0_20px_60px_-15px_rgba(234,88,12,0.5)] flex items-center justify-center select-none z-10 relative"
+              style="touch-action:manipulation;will-change:transform;-webkit-tap-highlight-color:transparent;"
             >
               🥙
             </button>
@@ -1438,39 +1508,7 @@
           <div
             class="mt-3 flex items-center justify-center gap-2 text-xs font-bold text-gray-600"
           >
-            <span>Notifications</span>
-            <select
-              id="notifLevelSelect"
-              class="bg-white border border-gray-200 rounded-lg px-2 py-1"
-            >
-              <option value="low">Low</option>
-              <option value="normal" selected>Normal</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-          <div
-            class="mt-2 flex items-center justify-center gap-2 text-xs font-bold text-gray-600"
-          >
-            <span>Screen Shake</span>
-            <label
-              class="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1"
-            >
-              <input id="screenShakeToggle" type="checkbox" checked />
-              <span>On</span>
-            </label>
-          </div>
-          <!-- Sound toggle -->
-          <div class="mt-2 flex items-center justify-center gap-2 text-xs font-bold text-gray-600">
-            <span>Sound</span>
-            <label class="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1">
-              <input id="soundToggle" type="checkbox" checked />
-              <span>On</span>
-            </label>
-          </div>
-          <!-- Export / Import save -->
-          <div class="mt-3 flex gap-2 justify-center">
-            <button onclick="exportSave()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all">📤 Export</button>
-            <button onclick="importSave()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-all">📥 Import</button>
+            <span class="text-gray-400 italic">Settings moved to ⚙️ Settings tab</span>
           </div>
         </div>
 
@@ -2006,6 +2044,14 @@
             <!-- Gameplay -->
             <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
               <h4 class="text-lg font-black text-gray-700 mb-4">🎮 Gameplay</h4>
+              <!-- Hidden legacy inputs kept for JS compatibility -->
+              <input type="checkbox" id="soundToggle" class="sr-only" checked>
+              <input type="checkbox" id="screenShakeToggle" class="sr-only" checked>
+              <select id="notifLevelSelect" class="sr-only">
+                <option value="low">Low</option>
+                <option value="normal" selected>Normal</option>
+                <option value="high">High</option>
+              </select>
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
                   <div>
@@ -2061,6 +2107,44 @@
               </div>
               <div class="mt-4 pt-4 border-t border-gray-100">
                 <div class="text-sm font-bold text-gray-500 mb-2">Last saved: <span id="settings-last-save">—</span></div>
+              </div>
+            </div>
+
+            <!-- Share -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-1 flex items-center gap-2">🔗 Share</h4>
+              <p class="text-xs text-gray-500 mb-4">Invite friends to build their own kebab empire.</p>
+              <div class="flex flex-wrap gap-3">
+                <button onclick="shareGame()" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-2xl font-black text-sm transition-all shadow-md">📤 Share Game</button>
+                <button onclick="copyGameLink()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2.5 rounded-2xl font-black text-sm transition-all">🔗 Copy Link</button>
+              </div>
+            </div>
+
+            <!-- Changelog -->
+            <div class="bg-white rounded-3xl p-6 mb-6 border border-gray-100 shadow-sm">
+              <h4 class="text-lg font-black text-gray-700 mb-3 flex items-center gap-2">📋 What's New <span class="text-xs font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full ml-1">Beta</span></h4>
+              <div class="space-y-3 text-sm text-gray-600">
+                <div class="border-l-4 border-orange-400 pl-3">
+                  <div class="font-black text-gray-800 text-xs uppercase tracking-wider mb-1">Beta — May 2026</div>
+                  <ul class="space-y-1 text-xs">
+                    <li>🎰 New Kebab Spin slot machine mini-game</li>
+                    <li>⚙️ Dedicated Settings tab with push notifications</li>
+                    <li>🌙 Welcome-back modal showing offline earnings</li>
+                    <li>🏆 20+ new achievements added</li>
+                    <li>🔧 Fixed: clicking unaffordable upgrades now shows how much you need</li>
+                    <li>🔧 Fixed: duplicate upgrade definitions consolidated</li>
+                    <li>⚡ Performance: render loop optimized, console spam removed</li>
+                  </ul>
+                </div>
+                <div class="border-l-4 border-gray-200 pl-3">
+                  <div class="font-black text-gray-500 text-xs uppercase tracking-wider mb-1">Alpha — Earlier</div>
+                  <ul class="space-y-1 text-xs text-gray-400">
+                    <li>🌍 5 cities, prestige system, daily quests</li>
+                    <li>💬 Real-time global & city chat via Firebase</li>
+                    <li>🃏 KebabJack & Kebab Mine mini-games</li>
+                    <li>📱 PWA support, offline play, export/import saves</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -2394,6 +2478,39 @@
       window.addEventListener("online",  _updateOfflineIndicator);
       window.addEventListener("offline", _updateOfflineIndicator);
       // Will also be called after initGame when DOM is ready
+
+      // ── Single source of truth for the base upgrade catalog ──────────────────
+      // Used by gameState init, resetGameForPrestige, and the save-load fallback.
+      // ensureUpgradeCatalog() adds the advanced items on top of this.
+      function _buildInitialUpgrades() {
+        return {
+          staff: {
+            chef:    { owned: 0, baseCost: 25,   income: 1.0, name: "Hire a Chef",         icon: "👨‍🍳", category: "staff" },
+            waiter:  { owned: 0, baseCost: 75,   income: 1.5, name: "Hire a Waiter",       icon: "🧑",  category: "staff" },
+            manager: { owned: 0, baseCost: 400,  income: 4,   name: "Hire a Manager",      icon: "👔",  category: "staff" },
+          },
+          equipment: {
+            grill:   { owned: 0, baseCost: 150,  income: 2,   name: "Buy Grill Machine",   icon: "🍳",  category: "equipment" },
+            oven:    { owned: 0, baseCost: 600,  income: 6,   name: "Buy Oven",            icon: "🥘",  category: "equipment" },
+            freezer: { owned: 0, baseCost: 1800, income: 12,  name: "Buy Freezer",         icon: "❄️",  category: "equipment" },
+          },
+          business: {
+            marketing: { owned: 0, baseCost: 250,  income: 1.2, name: "Marketing Campaign", icon: "📢", category: "business" },
+            delivery:  { owned: 0, baseCost: 1200, income: 5,   name: "Start Delivery",     icon: "🚗", category: "business" },
+            franchise: { owned: 0, baseCost: 8000, income: 20,  name: "Franchise",          icon: "🌍", category: "business" },
+          },
+          security: {
+            camera: { owned: 0, baseCost: 150,  security: 5,  name: "CCTV Cameras",    icon: "📷", category: "security" },
+            alarm:  { owned: 0, baseCost: 400,  security: 12, name: "Alarm System",    icon: "🚨", category: "security" },
+            guard:  { owned: 0, baseCost: 1200, security: 30, name: "Security Guard",  icon: "💂", category: "security" },
+          },
+          management: {
+            nightShift:       { owned: 0, baseCost: 1000,  offlineMult: 0.1,  name: "Night Shift",       icon: "🌙", category: "management", desc: "+10% Offline Income" },
+            storeManager:     { owned: 0, baseCost: 5000,  offlineMult: 0.2,  name: "Store Manager",     icon: "👔", category: "management", desc: "+20% Offline Income" },
+            regionalDirector: { owned: 0, baseCost: 25000, offlineMult: 0.3,  name: "Regional Director", icon: "📈", category: "management", desc: "+30% Offline Income" },
+          },
+        };
+      }
 
       let gameState = {
         kebabs: 0,
@@ -3191,10 +3308,13 @@
           minigameHypeMult: 2.0,
         },
       };
-      const SAVE_VERSION = 3;
-      const SIM_TICK_MS = 100;
-      // Render slower on mobile to save battery — 500ms vs 250ms on desktop
-      const RENDER_TICK_MS = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 500 : 250;
+      const SAVE_VERSION = 4;
+      // Detect mobile once here — used throughout for perf branching
+      const _isMobileUA = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+      const SIM_TICK_MS = _isMobileUA ? 200 : 100;
+      // Render slower on mobile to save battery — 600ms vs 250ms on desktop
+      const RENDER_TICK_MS = _isMobileUA ? 600 : 250;
       const EVENT_TYPE_COOLDOWN_MS = {
         festival: 110000,
         crisis: 90000,
@@ -3561,10 +3681,13 @@
         if (getQuestProgress(quest) < quest.target) return;
         quest.claimed = true;
         gameState.kebabs += quest.reward;
+        // Track total quests claimed for Quest Grinder achievement
+        gameState._totalQuestsClaimed = (gameState._totalQuestsClaimed || 0) + 1;
         showNotification(
           `✅ Quest complete! +${quest.reward.toLocaleString()} 🥙`,
           "success",
         );
+        checkAchievements();
         renderDailyQuests();
         updateDisplay();
       };
@@ -3697,34 +3820,101 @@
       function ensureAchievementCatalog() {
         const add = {
           cityTraveler: {
-            unlocked: false,
-            name: "City Traveler",
-            desc: "Unlock 3 cities",
-            icon: "🧳",
+            unlocked: false, name: "City Traveler",
+            desc: "Unlock 3 cities", icon: "🧳",
           },
           cityMagnate: {
-            unlocked: false,
-            name: "City Magnate",
-            desc: "Reach city level 5 in any city",
-            icon: "🏙️",
+            unlocked: false, name: "City Magnate",
+            desc: "Reach city level 5 in any city", icon: "🏙️",
           },
           permitBoss: {
-            unlocked: false,
-            name: "Permit Boss",
-            desc: "Earn 5 city permits",
-            icon: "📜",
+            unlocked: false, name: "Permit Boss",
+            desc: "Earn 5 city permits", icon: "📜",
           },
           upgradeCollector: {
-            unlocked: false,
-            name: "Upgrade Collector",
-            desc: "Own 30 upgrades",
-            icon: "🧰",
+            unlocked: false, name: "Upgrade Collector",
+            desc: "Own 30 upgrades total", icon: "🧰",
           },
           millionaire: {
-            unlocked: false,
-            name: "Millionaire",
-            desc: "Earn 1,000,000 kebabs",
-            icon: "💎",
+            unlocked: false, name: "Millionaire",
+            desc: "Earn 1,000,000 kebabs total", icon: "💎",
+          },
+          // ── New beta achievements ──────────────────────────────────────────
+          billionaire: {
+            unlocked: false, name: "Billionaire",
+            desc: "Earn 1,000,000,000 kebabs total", icon: "🤑",
+          },
+          firstPrestige: {
+            unlocked: false, name: "Reborn",
+            desc: "Prestige for the first time", icon: "🌟",
+          },
+          prestigeVet: {
+            unlocked: false, name: "Prestige Veteran",
+            desc: "Prestige 5 times", icon: "⭐",
+          },
+          allCities: {
+            unlocked: false, name: "World Domination",
+            desc: "Unlock all 5 cities", icon: "🌍",
+          },
+          level25: {
+            unlocked: false, name: "Seasoned Chef",
+            desc: "Reach level 25", icon: "🎖️",
+          },
+          level50: {
+            unlocked: false, name: "Legendary Chef",
+            desc: "Reach level 50", icon: "👑",
+          },
+          combo50: {
+            unlocked: false, name: "Combo Master",
+            desc: "Reach a 50x combo", icon: "🔥",
+          },
+          combo100: {
+            unlocked: false, name: "Unstoppable",
+            desc: "Reach a 100x combo", icon: "💥",
+          },
+          spinWin: {
+            unlocked: false, name: "Lucky Spin",
+            desc: "Win a Kebab Spin jackpot", icon: "🎰",
+          },
+          minigameVet: {
+            unlocked: false, name: "High Roller",
+            desc: "Win 10 minigames", icon: "🎲",
+          },
+          dailyStreak7: {
+            unlocked: false, name: "Loyal Customer",
+            desc: "Maintain a 7-day login streak", icon: "🔥",
+          },
+          dailyStreak30: {
+            unlocked: false, name: "Dedicated Chef",
+            desc: "Maintain a 30-day login streak", icon: "📅",
+          },
+          supplyHoarder: {
+            unlocked: false, name: "Supply Hoarder",
+            desc: "Fill all supplies to max at once", icon: "📦",
+          },
+          speedClicker: {
+            unlocked: false, name: "Speed Clicker",
+            desc: "Make 1,000 total clicks", icon: "⚡",
+          },
+          clickManiac: {
+            unlocked: false, name: "Click Maniac",
+            desc: "Make 10,000 total clicks", icon: "🖱️",
+          },
+          marketingGuru: {
+            unlocked: false, name: "Marketing Guru",
+            desc: "Run all 3 marketing campaigns", icon: "📢",
+          },
+          fullMenu: {
+            unlocked: false, name: "Full Menu",
+            desc: "Unlock all menu items", icon: "📋",
+          },
+          cityLevel10: {
+            unlocked: false, name: "Urban Legend",
+            desc: "Reach city level 10 in any city", icon: "🏆",
+          },
+          questComplete10: {
+            unlocked: false, name: "Quest Grinder",
+            desc: "Complete 10 daily quests", icon: "✅",
           },
         };
         for (const key in add) {
@@ -5131,57 +5321,44 @@
           const critMultiplier = checkCriticalClick();
           if (critMultiplier > 1) {
             clickValue *= critMultiplier;
-            createExplosion(e.clientX, e.clientY, [
-              "#FFD700",
-              "#FF6B00",
-              "#FF0000",
-            ]);
-            screenShake(200);
-            createFloatingText(
-              e,
-              "CRITICAL! 💥",
-              "text-yellow-500 font-black text-2xl",
-            );
+            // Only show explosion on desktop — too expensive on mobile
+            if (!_isMobile) {
+              createExplosion(e.clientX, e.clientY, ["#FFD700","#FF6B00","#FF0000"]);
+            }
+            // Skip screenShake on mobile entirely
+            if (!_isMobile) screenShake(200);
+            createFloatingText(e, "CRITICAL! 💥", "text-yellow-500 font-black text-2xl");
           }
 
           if (!hasSupplies) {
-            clickValue *= 0.5; // 50% penalty for no supplies
+            clickValue *= 0.5;
             applyCityReputationChange(gameState.currentCity, -0.15);
             createFloatingText(e, "Bad Quality! 🤢", "text-red-500");
           }
 
           gameState.kebabs += clickValue;
-          console.log(
-            "Added clickValue:",
-            clickValue,
-            "total kebabs:",
-            gameState.kebabs,
-          );
           gameState.totalClicks++;
           gameState.totalKebabsEarned += clickValue;
 
-          // XP gain - increased to make leveling more noticeable
+          // XP gain
           const xpGain = 5 * gameState.prestige.permanentMultipliers.xp;
           addXP(xpGain);
 
           // Combo system
           const now = Date.now();
           if (now - gameState.lastClickTime < 500) {
-            // 500ms window
             gameState.combo++;
             if (gameState.combo > gameState.maxCombo) {
               gameState.maxCombo = gameState.combo;
             }
-            // Check combo milestones
-            checkComboMilestones();
-            // Show combo text at big milestones
-            if (
-              gameState.combo === 25 ||
-              gameState.combo === 50 ||
-              gameState.combo === 100 ||
-              gameState.combo === 250 ||
+            // Throttle milestone checks — only every 5 combos
+            if (gameState.combo % 5 === 0) checkComboMilestones();
+            // Show combo text at big milestones (desktop only)
+            if (!_isMobile && (
+              gameState.combo === 25 || gameState.combo === 50 ||
+              gameState.combo === 100 || gameState.combo === 250 ||
               gameState.combo === 500
-            ) {
+            )) {
               createComboText(gameState.combo);
               screenShake(400);
             }
@@ -5191,53 +5368,52 @@
           }
           gameState.lastClickTime = now;
 
-          // Active reputation gain
-          let repGain = 0.01 * gameState.prestige.permanentMultipliers.xp;
-          if (gameState.combo >= 10) repGain += 0.04; // Combo bonus
-          if (critMultiplier > 1) repGain += 0.1; // Critical bonus
-
-          applyCityReputationChange(gameState.currentCity, repGain);
-
-          // Check for story progress
-          checkStoryProgress();
-
-          // Check upgrade tier unlocks
-          checkUpgradeTierUnlocks();
-
-          // Update combo display
-          if (gameState.combo >= 5) {
-            comboDisplay.classList.remove("hidden");
-            comboCount.textContent = gameState.combo;
-            comboDisplay.classList.remove("combo-display");
-            void comboDisplay.offsetWidth; // Trigger reflow
-            comboDisplay.classList.add("combo-display");
-          } else {
-            comboDisplay.classList.add("hidden");
+          // Active reputation gain — throttled to every 5 clicks
+          if (gameState.totalClicks % 5 === 0) {
+            let repGain = 0.05 * gameState.prestige.permanentMultipliers.xp;
+            if (gameState.combo >= 10) repGain += 0.2;
+            if (critMultiplier > 1) repGain += 0.5;
+            applyCityReputationChange(gameState.currentCity, repGain);
           }
 
-          // Button animation - force retrigger by removing and re-adding
-          kebabButton.classList.remove("clicked");
-          void kebabButton.offsetWidth; // Trigger reflow to force animation restart
+          // Story / tier checks — throttled to every 10 clicks
+          if (gameState.totalClicks % 10 === 0) {
+            checkStoryProgress();
+            checkUpgradeTierUnlocks();
+          }
+
+          // Update combo display cheaply
+          if (gameState.combo >= 5) {
+            if (comboDisplay) {
+              comboDisplay.classList.remove("hidden");
+              if (comboCount) comboCount.textContent = gameState.combo;
+            }
+          } else {
+            if (comboDisplay) comboDisplay.classList.add("hidden");
+          }
+
+          // Button animation — use CSS class only, NO forced reflow
           kebabButton.classList.add("clicked");
           setTimeout(() => kebabButton.classList.remove("clicked"), 200);
-
-          // Also add shake for screen effect
-          kebabButton.classList.add("shake");
-          setTimeout(() => kebabButton.classList.remove("shake"), 300);
 
           // Play sound
           playClickSound();
 
-          // Create floating +1 text
-          createFloatingText(e, `+${clickValue.toFixed(1)}`);
+          // Floating text — skip on mobile when tapping fast (>8 taps/sec)
+          const tapRate = now - gameState.lastClickTime;
+          if (!_isMobile || tapRate > 120) {
+            createFloatingText(e, `+${Math.floor(clickValue)}`);
+          }
 
-          // Update flavor text
+          // Update flavor text — 10% chance
           if (Math.random() < 0.1 && flavorText) {
             flavorText.textContent =
               flavorTexts[Math.floor(Math.random() * flavorTexts.length)];
           }
 
-          updateDisplay();
+          // Don't call updateDisplay() here — the render loop handles it at 250/500ms
+          // Just mark kebab count as dirty so the next render picks it up immediately
+          _displayCache.lastAffordKebabs = null;
         });
 
         if (boostButton) boostButton.addEventListener("click", activateBoost);
@@ -5278,31 +5454,49 @@
         );
       }
 
-      // Create floating text animation
+      // Create floating text animation — pooled to avoid GC pressure on mobile
+      const _floatPool = [];
+      const _FLOAT_POOL_SIZE = 6;
+
       function createFloatingText(event, text, colorClass = "float-text") {
-        const floatText = document.createElement("div");
-        floatText.className =
-          colorClass === "float-text"
-            ? "float-text"
-            : `float-text ${colorClass}`;
+        // On mobile skip most float texts to reduce DOM churn — only show every 3rd tap
+        if (_isMobile) {
+          _floatSkip = ((_floatSkip || 0) + 1) % 3;
+          if (_floatSkip !== 0 && colorClass === "float-text") return;
+        }
+
+        // Reuse a pooled node if available
+        let floatText = _floatPool.pop();
+        if (!floatText) {
+          floatText = document.createElement("div");
+          floatText.style.position = "fixed";
+          floatText.style.pointerEvents = "none";
+          floatText.style.fontWeight = "bold";
+          floatText.style.fontSize = "24px";
+          floatText.style.zIndex = "100";
+          floatText.style.animation = "floatUp 1s ease-out forwards";
+        }
+        floatText.className = colorClass === "float-text" ? "float-text" : `float-text ${colorClass}`;
         floatText.textContent = text;
 
-        // Position near the click
-        const rect = kebabButton.getBoundingClientRect();
-        const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 40;
-        const y = rect.top + rect.height / 2;
-
+        // Use cached button rect — only re-measure every 500ms
+        const now = Date.now();
+        if (!_btnRect || now - _btnRectTime > 500) {
+          _btnRect = kebabButton ? kebabButton.getBoundingClientRect() : { left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0 };
+          _btnRectTime = now;
+        }
+        const x = _btnRect.left + _btnRect.width / 2 + (Math.random() - 0.5) * 40;
+        const y = _btnRect.top + _btnRect.height / 2;
         floatText.style.left = `${x}px`;
         floatText.style.top = `${y}px`;
-        floatText.style.fontSize = "24px";
 
         document.body.appendChild(floatText);
-
-        // Remove after animation
         setTimeout(() => {
           floatText.remove();
+          if (_floatPool.length < _FLOAT_POOL_SIZE) _floatPool.push(floatText);
         }, 1000);
       }
+      let _floatSkip = 0, _btnRect = null, _btnRectTime = 0;
 
       function updatePlayerTitle() {
         const level = gameState.level;
@@ -5341,17 +5535,17 @@
 
       // Create level up particle explosion
       function createLevelUpParticles() {
+        // Skip entirely on mobile — too expensive
+        if (_isMobile) return;
         const colors = ["#FFD700", "#FFA500", "#FF6347", "#00CED1", "#9370DB"];
-        for (let i = 0; i < 20; i++) {
+        const count = 12; // reduced from 20
+        for (let i = 0; i < count; i++) {
           const particle = document.createElement("div");
           particle.className = "click-particle";
-          particle.textContent = ["⭐", "✨", "🎉", "🌟"][
-            Math.floor(Math.random() * 4)
-          ];
+          particle.textContent = ["⭐", "✨", "🎉", "🌟"][Math.floor(Math.random() * 4)];
           particle.style.left = `${window.innerWidth / 2 + (Math.random() - 0.5) * 200}px`;
           particle.style.top = `${200 + (Math.random() - 0.5) * 100}px`;
-          particle.style.color =
-            colors[Math.floor(Math.random() * colors.length)];
+          particle.style.color = colors[Math.floor(Math.random() * colors.length)];
           document.body.appendChild(particle);
           setTimeout(() => particle.remove(), 1000);
         }
@@ -5400,6 +5594,17 @@
           checkAchievements();
 
           updateDisplay();
+        } else {
+          // Can't afford — shake the item and show how much more is needed
+          const upgradeItem = document.querySelector(
+            `[data-category="${category}"][data-key="${key}"]`,
+          );
+          if (upgradeItem) {
+            upgradeItem.classList.add("shake");
+            setTimeout(() => upgradeItem.classList.remove("shake"), 300);
+          }
+          const need = Math.ceil(cost - gameState.kebabs);
+          showNotification(`Need ${need.toLocaleString()} more 🥙`, "error");
         }
       }
 
@@ -5569,6 +5774,159 @@
           unlockedAny = true;
           showNotification("🏆 Achievement: Millionaire!");
         }
+
+        // ── New beta achievements ──────────────────────────────────────────
+        if (
+          gameState.totalKebabsEarned >= 1000000000 &&
+          !ensureAchievement("billionaire").unlocked
+        ) {
+          ensureAchievement("billionaire").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Billionaire!");
+        }
+
+        if (
+          (gameState.prestige?.count || 0) >= 1 &&
+          !ensureAchievement("firstPrestige").unlocked
+        ) {
+          ensureAchievement("firstPrestige").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Reborn!");
+        }
+
+        if (
+          (gameState.prestige?.count || 0) >= 5 &&
+          !ensureAchievement("prestigeVet").unlocked
+        ) {
+          ensureAchievement("prestigeVet").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Prestige Veteran!");
+        }
+
+        if (
+          Object.values(gameState.cities).every(c => c.unlocked) &&
+          !ensureAchievement("allCities").unlocked
+        ) {
+          ensureAchievement("allCities").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: World Domination!");
+        }
+
+        if (gameState.level >= 25 && !ensureAchievement("level25").unlocked) {
+          ensureAchievement("level25").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Seasoned Chef!");
+        }
+
+        if (gameState.level >= 50 && !ensureAchievement("level50").unlocked) {
+          ensureAchievement("level50").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Legendary Chef!");
+        }
+
+        if (gameState.maxCombo >= 50 && !ensureAchievement("combo50").unlocked) {
+          ensureAchievement("combo50").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Combo Master!");
+        }
+
+        if (gameState.maxCombo >= 100 && !ensureAchievement("combo100").unlocked) {
+          ensureAchievement("combo100").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Unstoppable!");
+        }
+
+        if (
+          (gameState.minigameWins || 0) >= 10 &&
+          !ensureAchievement("minigameVet").unlocked
+        ) {
+          ensureAchievement("minigameVet").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: High Roller!");
+        }
+
+        if (
+          (gameState.dailyStreak || 0) >= 7 &&
+          !ensureAchievement("dailyStreak7").unlocked
+        ) {
+          ensureAchievement("dailyStreak7").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Loyal Customer!");
+        }
+
+        if (
+          (gameState.dailyStreak || 0) >= 30 &&
+          !ensureAchievement("dailyStreak30").unlocked
+        ) {
+          ensureAchievement("dailyStreak30").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Dedicated Chef!");
+        }
+
+        if (
+          gameState.totalClicks >= 1000 &&
+          !ensureAchievement("speedClicker").unlocked
+        ) {
+          ensureAchievement("speedClicker").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Speed Clicker!");
+        }
+
+        if (
+          gameState.totalClicks >= 10000 &&
+          !ensureAchievement("clickManiac").unlocked
+        ) {
+          ensureAchievement("clickManiac").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Click Maniac!");
+        }
+
+        // Supply hoarder — all supplies at max
+        const allSuppliesMax = Object.values(gameState.supply).every(
+          s => s.stock >= s.maxStock * 0.99
+        );
+        if (allSuppliesMax && !ensureAchievement("supplyHoarder").unlocked) {
+          ensureAchievement("supplyHoarder").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Supply Hoarder!");
+        }
+
+        // Marketing guru — all 3 campaigns run at least once
+        const allCampaignsUsed = gameState._campaignsUsed &&
+          gameState._campaignsUsed.localAd &&
+          gameState._campaignsUsed.socialMedia &&
+          gameState._campaignsUsed.tvCommercial;
+        if (allCampaignsUsed && !ensureAchievement("marketingGuru").unlocked) {
+          ensureAchievement("marketingGuru").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Marketing Guru!");
+        }
+
+        // Full menu — all menu items unlocked
+        const allMenuUnlocked = Object.values(gameState.menuItems).every(m => m.unlocked);
+        if (allMenuUnlocked && !ensureAchievement("fullMenu").unlocked) {
+          ensureAchievement("fullMenu").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Full Menu!");
+        }
+
+        // City level 10
+        const hasLevel10City = Object.values(gameState.cities).some(c => (c.level || 1) >= 10);
+        if (hasLevel10City && !ensureAchievement("cityLevel10").unlocked) {
+          ensureAchievement("cityLevel10").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Urban Legend!");
+        }
+
+        // Quest grinder — track completed quests count
+        const completedQuests = (gameState.dailyQuests || []).filter(q => q.claimed).length
+          + (gameState._totalQuestsClaimed || 0);
+        if (completedQuests >= 10 && !ensureAchievement("questComplete10").unlocked) {
+          ensureAchievement("questComplete10").unlocked = true;
+          unlockedAny = true;
+          showNotification("🏆 Achievement: Quest Grinder!");
+        }
+
         if (unlockedAny) achievementsDirty = true;
       }
 
@@ -5696,6 +6054,12 @@
           data.saveVersion = 3;
         }
 
+        if (data.saveVersion < 4) {
+          data._campaignsUsed = data._campaignsUsed || {};
+          data._totalQuestsClaimed = data._totalQuestsClaimed || 0;
+          data.saveVersion = 4;
+        }
+
         return data;
       }
 
@@ -5740,6 +6104,8 @@
           lastSaveTime: Date.now(),
           lastDailyRewardTime: gameState.lastDailyRewardTime,
           dailyStreak: gameState.dailyStreak,
+          _campaignsUsed: gameState._campaignsUsed || {},
+          _totalQuestsClaimed: gameState._totalQuestsClaimed || 0,
         };
       }
 
@@ -6047,6 +6413,8 @@
           lastSaveTime: Date.now(),
           lastDailyRewardTime: gameState.lastDailyRewardTime,
           dailyStreak: gameState.dailyStreak,
+          _campaignsUsed: gameState._campaignsUsed || {},
+          _totalQuestsClaimed: gameState._totalQuestsClaimed || 0,
         };
 
         localStorage.setItem(getSaveKey(), JSON.stringify(saveData));
@@ -6299,146 +6667,7 @@
               !gameState.upgrades ||
               Object.keys(gameState.upgrades).length === 0
             ) {
-              console.error(
-                "gameState.upgrades is empty after load, reinitializing",
-              );
-              // Create a fresh copy of the initial upgrades structure
-              const freshUpgrades = {
-                staff: {
-                  chef: {
-                    owned: 0,
-                    baseCost: 25,
-                    income: 1.0,
-                    name: "Hire a Chef",
-                    icon: "👨‍🍳",
-                    category: "staff",
-                  },
-                  waiter: {
-                    owned: 0,
-                    baseCost: 75,
-                    income: 1.5,
-                    name: "Hire a Waiter",
-                    icon: "🧑",
-                    category: "staff",
-                  },
-                  manager: {
-                    owned: 0,
-                    baseCost: 400,
-                    income: 4,
-                    name: "Hire a Manager",
-                    icon: "👔",
-                    category: "staff",
-                  },
-                },
-                equipment: {
-                  grill: {
-                    owned: 0,
-                    baseCost: 150,
-                    income: 2,
-                    name: "Buy Grill Machine",
-                    icon: "🍳",
-                    category: "equipment",
-                  },
-                  oven: {
-                    owned: 0,
-                    baseCost: 600,
-                    income: 6,
-                    name: "Buy Oven",
-                    icon: "🥘",
-                    category: "equipment",
-                  },
-                  freezer: {
-                    owned: 0,
-                    baseCost: 1800,
-                    income: 12,
-                    name: "Buy Freezer",
-                    icon: "❄️",
-                    category: "equipment",
-                  },
-                },
-                business: {
-                  marketing: {
-                    owned: 0,
-                    baseCost: 250,
-                    income: 1.2,
-                    name: "Marketing Campaign",
-                    icon: "📢",
-                    category: "business",
-                  },
-                  delivery: {
-                    owned: 0,
-                    baseCost: 1200,
-                    income: 5,
-                    name: "Start Delivery",
-                    icon: "🚗",
-                    category: "business",
-                  },
-                  franchise: {
-                    owned: 0,
-                    baseCost: 8000,
-                    income: 20,
-                    name: "Franchise",
-                    icon: "🌍",
-                    category: "business",
-                  },
-                },
-                security: {
-                  camera: {
-                    owned: 0,
-                    baseCost: 150,
-                    security: 5,
-                    name: "CCTV Cameras",
-                    icon: "📷",
-                    category: "security",
-                  },
-                  alarm: {
-                    owned: 0,
-                    baseCost: 400,
-                    security: 12,
-                    name: "Alarm System",
-                    icon: "🚨",
-                    category: "security",
-                  },
-                  guard: {
-                    owned: 0,
-                    baseCost: 1200,
-                    security: 30,
-                    name: "Security Guard",
-                    icon: "💂",
-                    category: "security",
-                  },
-                },
-                management: {
-                  nightShift: {
-                    owned: 0,
-                    baseCost: 1000,
-                    offlineMult: 0.1,
-                    name: "Night Shift",
-                    icon: "🌙",
-                    category: "management",
-                    desc: "+10% Offline Income",
-                  },
-                  storeManager: {
-                    owned: 0,
-                    baseCost: 5000,
-                    offlineMult: 0.2,
-                    name: "Store Manager",
-                    icon: "👔",
-                    category: "management",
-                    desc: "+20% Offline Income",
-                  },
-                  regionalDirector: {
-                    owned: 0,
-                    baseCost: 25000,
-                    offlineMult: 0.3,
-                    name: "Regional Director",
-                    icon: "📈",
-                    category: "management",
-                    desc: "+30% Offline Income",
-                  },
-                },
-              };
-              gameState.upgrades = freshUpgrades;
+              gameState.upgrades = _buildInitialUpgrades();
             }
             ensureCityFields();
             ensureUpgradeCatalog();
@@ -6480,39 +6709,55 @@
                 incomePerSec * effectiveSeconds * offlineMult,
               );
 
-              if (offlineEarnings > 0) {
-                gameState.kebabs += offlineEarnings;
-                setTimeout(() => {
-                  showNotification(
-                    `🌙 Welcome back! You earned ${offlineEarnings.toLocaleString()} 🥙 while away!`,
-                    "info",
-                  );
-                }, 1000);
-              }
-
               // Comeback reward for long breaks (once roughly per day)
+              let comebackReward = 0;
               const longBreakSeconds = 6 * 3600;
               if (
                 elapsedSeconds >= longBreakSeconds &&
                 Date.now() - gameState.lastComebackBonusAt > 20 * 3600 * 1000
               ) {
-                const comebackReward = Math.floor(
-                  incomePerSec * 300 + gameState.level * 500,
-                );
+                comebackReward = Math.floor(incomePerSec * 300 + gameState.level * 500);
                 gameState.kebabs += comebackReward;
                 gameState.lastComebackBonusAt = Date.now();
+              }
+
+              if (offlineEarnings > 0) {
+                gameState.kebabs += offlineEarnings;
+              }
+
+              // Show welcome-back modal after a short delay so the game renders first
+              if (offlineEarnings > 0 || comebackReward > 0) {
                 setTimeout(() => {
-                  showNotification(
-                    `🎁 Comeback bonus: +${comebackReward.toLocaleString()} 🥙`,
-                    "success",
-                  );
-                }, 1300);
+                  const modal = document.getElementById("offline-modal");
+                  const body  = document.getElementById("offline-modal-body");
+                  const bonus = document.getElementById("offline-modal-bonus");
+                  const okBtn = document.getElementById("offline-modal-ok");
+                  if (!modal || !body) return;
+
+                  const hoursAway = (elapsedSeconds / 3600).toFixed(1);
+                  body.textContent = `You were away for ${hoursAway}h. Your staff kept cooking!`;
+
+                  const lines = [];
+                  if (offlineEarnings > 0) lines.push(`🥙 +${offlineEarnings.toLocaleString()} offline earnings (${Math.round(offlineMult * 100)}% rate)`);
+                  if (comebackReward > 0) lines.push(`🎁 +${comebackReward.toLocaleString()} comeback bonus`);
+                  if (lines.length > 0 && bonus) {
+                    bonus.innerHTML = lines.join("<br>");
+                    bonus.classList.remove("hidden");
+                  }
+
+                  modal.classList.add("open");
+                  if (okBtn) {
+                    okBtn.onclick = () => modal.classList.remove("open");
+                  }
+                }, 800);
               }
             }
 
             gameState.lastSaveTime = now;
             gameState.lastDailyRewardTime = data.lastDailyRewardTime || 0;
             gameState.dailyStreak = data.dailyStreak || 0;
+            gameState._campaignsUsed = data._campaignsUsed || {};
+            gameState._totalQuestsClaimed = data._totalQuestsClaimed || 0;
 
             checkDailyReward(); // Check for daily reward after loading
             generateDailyQuests();
@@ -7081,9 +7326,8 @@
       let currentUser = null;
 
       // Sync local username if Firebase is off
-      // Detect mobile/tablet to choose the right auth flow
-      const _isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
-        || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+      // _isMobile reuses the early-defined _isMobileUA so both are consistent
+      const _isMobile = _isMobileUA;
 
       window.loginWithGoogle = function () {
         if (firebaseEnabled) {
@@ -7440,141 +7684,8 @@
         gameState.xpToNextLevel = 100;
         gameState.combo = 0;
         gameState.maxCombo = 0;
-        gameState.upgrades = {
-          staff: {
-            chef: {
-              owned: 0,
-              baseCost: 25,
-              income: 1.0,
-              name: "Hire a Chef",
-              icon: "👨‍🍳",
-              category: "staff",
-            },
-            waiter: {
-              owned: 0,
-              baseCost: 75,
-              income: 1.5,
-              name: "Hire a Waiter",
-              icon: "🧑",
-              category: "staff",
-            },
-            manager: {
-              owned: 0,
-              baseCost: 400,
-              income: 4,
-              name: "Hire a Manager",
-              icon: "👔",
-              category: "staff",
-            },
-          },
-          equipment: {
-            grill: {
-              owned: 0,
-              baseCost: 150,
-              income: 2,
-              name: "Buy Grill Machine",
-              icon: "🍳",
-              category: "equipment",
-            },
-            oven: {
-              owned: 0,
-              baseCost: 600,
-              income: 6,
-              name: "Buy Oven",
-              icon: "🥘",
-              category: "equipment",
-            },
-            freezer: {
-              owned: 0,
-              baseCost: 1800,
-              income: 12,
-              name: "Buy Freezer",
-              icon: "❄️",
-              category: "equipment",
-            },
-          },
-          business: {
-            marketing: {
-              owned: 0,
-              baseCost: 250,
-              income: 1.2,
-              name: "Marketing Campaign",
-              icon: "📢",
-              category: "business",
-            },
-            delivery: {
-              owned: 0,
-              baseCost: 1200,
-              income: 5,
-              name: "Start Delivery",
-              icon: "🚗",
-              category: "business",
-            },
-            franchise: {
-              owned: 0,
-              baseCost: 8000,
-              income: 20,
-              name: "Franchise",
-              icon: "🌍",
-              category: "business",
-            },
-          },
-          security: {
-            camera: {
-              owned: 0,
-              baseCost: 150,
-              security: 5,
-              name: "CCTV Cameras",
-              icon: "📷",
-              category: "security",
-            },
-            alarm: {
-              owned: 0,
-              baseCost: 400,
-              security: 12,
-              name: "Alarm System",
-              icon: "🚨",
-              category: "security",
-            },
-            guard: {
-              owned: 0,
-              baseCost: 1200,
-              security: 30,
-              name: "Security Guard",
-              icon: "💂",
-              category: "security",
-            },
-          },
-          management: {
-            nightShift: {
-              owned: 0,
-              baseCost: 1000,
-              offlineMult: 0.1,
-              name: "Night Shift",
-              icon: "🌙",
-              category: "management",
-              desc: "+10% Offline Income",
-            },
-            storeManager: {
-              owned: 0,
-              baseCost: 5000,
-              offlineMult: 0.2,
-              name: "Store Manager",
-              icon: "👔",
-              category: "management",
-              desc: "+20% Offline Income",
-            },
-            regionalDirector: {
-              owned: 0,
-              baseCost: 25000,
-              offlineMult: 0.3,
-              name: "Regional Director",
-              icon: "📈",
-              category: "management",
-              desc: "+30% Offline Income",
-            },
-          },
-        };
+        // Use the single source of truth instead of duplicating the object
+        gameState.upgrades = _buildInitialUpgrades();
         gameState.achievements = {};
         hardResetCityState();
         hardResetMenuUnlocks();
@@ -7715,6 +7826,11 @@
         campaign.active = true;
         campaign.endsAt = Date.now() + campaign.duration * 1000;
 
+        // Track for Marketing Guru achievement
+        if (!gameState._campaignsUsed) gameState._campaignsUsed = {};
+        gameState._campaignsUsed[type] = true;
+        checkAchievements();
+
         showNotification(
           `📢 ${type} campaign started! ${campaign.multiplier}x income for ${campaign.duration / 60} minutes!`,
           "success",
@@ -7753,54 +7869,43 @@
         y,
         colors = ["#FFD700", "#FFA500", "#FF6347"],
       ) {
-        for (let i = 0; i < 20; i++) {
+        if (_isMobile) return; // too expensive on mobile
+        const count = 12; // reduced from 20
+        for (let i = 0; i < count; i++) {
           const particle = document.createElement("div");
-          particle.style.position = "fixed";
-          particle.style.left = x + "px";
-          particle.style.top = y + "px";
-          particle.style.width = "8px";
-          particle.style.height = "8px";
-          particle.style.backgroundColor =
-            colors[Math.floor(Math.random() * colors.length)];
-          particle.style.borderRadius = "50%";
-          particle.style.pointerEvents = "none";
-          particle.style.zIndex = "9999";
+          particle.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:8px;height:8px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:50%;pointer-events:none;z-index:9999;`;
           document.body.appendChild(particle);
 
-          const angle = (Math.PI * 2 * i) / 20;
+          const angle = (Math.PI * 2 * i) / count;
           const velocity = 50 + Math.random() * 100;
           const vx = Math.cos(angle) * velocity;
           const vy = Math.sin(angle) * velocity;
 
           particle.animate(
             [
-              { transform: "translate(0, 0) scale(1)", opacity: 1 },
-              { transform: `translate(${vx}px, ${vy}px) scale(0)`, opacity: 0 },
+              { transform: "translate(0,0) scale(1)", opacity: 1 },
+              { transform: `translate(${vx}px,${vy}px) scale(0)`, opacity: 0 },
             ],
-            {
-              duration: 800 + Math.random() * 400,
-              easing: "cubic-bezier(0, .9, .57, 1)",
-            },
+            { duration: 800 + Math.random() * 400, easing: "cubic-bezier(0,.9,.57,1)" },
           ).onfinish = () => particle.remove();
         }
       }
 
       function screenShake(duration = 300) {
+        if (_isMobile) return; // skip on mobile — causes jank
         if (!gameState.visual?.screenShake) return;
-        const body = document.body;
-        body.animate(
+        const container = document.querySelector(".container");
+        if (!container) return;
+        container.animate(
           [
-            { transform: "translate(0, 0)" },
-            { transform: "translate(-5px, 5px)" },
-            { transform: "translate(5px, -5px)" },
-            { transform: "translate(-5px, -5px)" },
-            { transform: "translate(5px, 5px)" },
-            { transform: "translate(0, 0)" },
+            { transform: "translate(0,0)" },
+            { transform: "translate(-4px,4px)" },
+            { transform: "translate(4px,-4px)" },
+            { transform: "translate(-4px,-4px)" },
+            { transform: "translate(4px,4px)" },
+            { transform: "translate(0,0)" },
           ],
-          {
-            duration: duration,
-            iterations: 2,
-          },
+          { duration, iterations: 1 },
         );
       }
 
@@ -9645,11 +9750,24 @@
         }
       }
 
-      // Render loop (runs every 250ms)
+      // Render loop (runs every 250ms desktop / 600ms mobile)
       function renderLoop() {
+        // Skip entirely if page is hidden (tab in background)
+        if (document.hidden) return;
+
         updateDisplay();
-        renderAchievements();
-        renderTradeMarket();
+
+        // Only render achievements when their section is visible
+        const achievementsEl = document.getElementById("achievementsList");
+        if (achievementsEl && achievementsEl.offsetParent !== null) {
+          renderAchievements();
+        }
+
+        // Only render trade market when community tab is open
+        const communityTab = document.getElementById("community-tab");
+        if (communityTab && !communityTab.classList.contains("hidden")) {
+          renderTradeMarket();
+        }
       }
 
       // Auto-save function
@@ -9791,8 +9909,11 @@
 
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
+          // Page became visible — reset frame time so offline income isn't double-counted
           lastFrameTime = Date.now();
+          incomeCache = null; // force recalc
         }
+        // Game loop and render loop already check document.hidden — no need to stop intervals
       });
 
       // ============================================
@@ -9963,26 +10084,71 @@
       }
 
       // ============================================
+      // SHARE & INVITE
+      // ============================================
+      const GAME_URL = "https://kebab-clicker-99f4d.web.app";
+
+      window.shareGame = function() {
+        const prestige = gameState.prestige?.count || 0;
+        const city = gameState.cities[gameState.currentCity]?.name || "Istanbul";
+        const text = prestige > 0
+          ? `I'm Prestige ${prestige} in Kebab Clicker Empire! Building my kebab empire in ${city}. Can you beat me? 🥙`
+          : `I'm building a kebab empire in ${city}! Join me in Kebab Clicker Empire 🥙`;
+
+        if (navigator.share) {
+          navigator.share({ title: "Kebab Clicker Empire", text, url: GAME_URL })
+            .catch(() => {}); // user cancelled — silent
+        } else {
+          copyGameLink();
+        }
+      };
+
+      window.copyGameLink = function() {
+        const prestige = gameState.prestige?.count || 0;
+        const text = `${GAME_URL} — Kebab Clicker Empire${prestige > 0 ? ` (Prestige ${prestige})` : ""}`;
+        navigator.clipboard.writeText(text).then(() => {
+          showNotification("🔗 Link copied to clipboard!", "success");
+        }).catch(() => {
+          prompt("Copy this link:", GAME_URL);
+        });
+      };
+
+      // ============================================
       // KEBAB SPIN (SLOT MACHINE)
       // ============================================
-      const KS_SYMBOLS = ["🥙","🔥","💎","🌟","🧆","🍞","🥩"];
+      // Weighted reel: 🥙 appears 6x, common symbols 3x, rare 1x
+      // This gives ~95% RTP: triple 🥙 (10x) hits ~1/8, two-match ~40%, no-match ~45%
+      const KS_REEL = ["🥙","🥙","🥙","🥙","🥙","🥙","🔥","🔥","🔥","🧆","🧆","🧆","🍞","🍞","🍞","🥩","🥩","🥩","🌟","🌟","💎"];
+      const KS_SYMBOLS = ["🥙","🔥","💎","🌟","🧆","🍞","🥩"]; // kept for paytable display
       const KS_PAYOUTS = {
         "🥙": 10, "🔥": 8, "💎": 20, "🌟": 15, "🧆": 5, "🍞": 4, "🥩": 6
       };
       let _ksSpinning = false;
 
+      function _ksSpin() {
+        return KS_REEL[Math.floor(Math.random() * KS_REEL.length)];
+      }
+
       window.spinKebabSlot = function() {
         if (_ksSpinning) return;
         const betInput = document.getElementById("ks-bet");
-        const bet = Math.max(10, parseInt(betInput?.value) || 50);
-        if (gameState.kebabs < bet) {
-          document.getElementById("ks-result").textContent = "❌ Not enough kebabs!";
-          document.getElementById("ks-result").className = "text-center font-black text-xl py-3 rounded-2xl text-red-300";
+        const bet = Math.max(10, Math.floor(Number(betInput?.value) || 50));
+        if (!Number.isFinite(bet) || bet < 10) {
+          showNotification("Minimum bet is 10 🥙", "error");
           return;
         }
+        if (gameState.kebabs < bet) {
+          const resultDiv = document.getElementById("ks-result");
+          if (resultDiv) {
+            resultDiv.textContent = `❌ Need ${Math.ceil(bet - gameState.kebabs).toLocaleString()} more 🥙`;
+            resultDiv.className = "text-center font-black text-xl py-3 rounded-2xl text-red-300";
+          }
+          return;
+        }
+        // Lock immediately before any async work to prevent double-spend
+        _ksSpinning = true;
         gameState.kebabs -= bet;
         updateDisplay();
-        _ksSpinning = true;
         const spinBtn = document.getElementById("ks-spin-btn");
         if (spinBtn) { spinBtn.disabled = true; spinBtn.textContent = "Spinning…"; }
 
@@ -9991,12 +10157,12 @@
         let ticks = 0;
         const maxTicks = 18;
         const interval = setInterval(() => {
-          reels.forEach(r => { if (r) r.textContent = KS_SYMBOLS[Math.floor(Math.random() * KS_SYMBOLS.length)]; });
+          reels.forEach(r => { if (r) r.textContent = _ksSpin(); });
           ticks++;
           if (ticks >= maxTicks) {
             clearInterval(interval);
-            // Final result
-            const result = [0,1,2].map(() => KS_SYMBOLS[Math.floor(Math.random() * KS_SYMBOLS.length)]);
+            // Final result uses weighted reel
+            const result = [_ksSpin(), _ksSpin(), _ksSpin()];
             reels.forEach((r, i) => { if (r) r.textContent = result[i]; });
             _ksResolve(bet, result);
           }
@@ -10018,6 +10184,13 @@
           gameState.minigameWins++;
           createLevelUpParticles();
           showNotification(`🎰 Jackpot! +${winnings.toLocaleString()} 🥙`, "success");
+          // Spin jackpot achievement
+          if (!gameState.achievements.spinWin || !gameState.achievements.spinWin.unlocked) {
+            if (!gameState.achievements.spinWin) gameState.achievements.spinWin = { unlocked: false, name: "Lucky Spin", desc: "Win a Kebab Spin jackpot", icon: "🎰" };
+            gameState.achievements.spinWin.unlocked = true;
+            achievementsDirty = true;
+            showNotification("🏆 Achievement: Lucky Spin!");
+          }
         } else if (result[0] === result[1] || result[1] === result[2] || result[0] === result[2]) {
           // Two match
           winnings = Math.floor(bet * 1.5);
@@ -10036,6 +10209,7 @@
         resultDiv.textContent = msg;
         if (spinBtn) { spinBtn.disabled = false; spinBtn.textContent = "🎰 SPIN!"; }
         _ksSpinning = false;
+        checkAchievements();
         updateDisplay();
       }
 
@@ -10244,10 +10418,6 @@
       <button data-tab="community">
         <span class="nav-icon">🤝</span>
         <span>Social</span>
-      </button>
-      <button data-tab="settings">
-        <span class="nav-icon">⚙️</span>
-        <span>Settings</span>
       </button>
     </div>
   </body>

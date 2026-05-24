@@ -28,7 +28,7 @@ service cloud.firestore {
     }
 
     // Rate-limit writes: allow at most once every 10 seconds per document
-    // (compares client-supplied lastSeen against the stored one)
+    // Uses server-side request.time so clients cannot bypass by omitting lastSeen
     function notTooFrequent() {
       return !('lastSeen' in resource.data)
         || request.time > resource.data.lastSeen + duration.value(10, 's');
