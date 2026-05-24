@@ -45,11 +45,12 @@
     />
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs — analytics loaded lazily after init -->
+    <!-- Tailwind config: suppress the Play CDN production warning -->
+    <script>window.tailwind = window.tailwind || {}; window.tailwind.config = { future: {} };</script>
+    <!-- Firebase SDKs — loaded synchronously (game init depends on them) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- analytics loaded on demand below, not blocking -->
     <style>
       @keyframes pulse {
         0%,
@@ -197,6 +198,16 @@
         will-change: transform;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
+      }
+
+      /* Contain layout/style for major panels — browser skips painting siblings */
+      @media (max-width: 768px) {
+        .tab-content:not(.hidden) {
+          contain: layout style;
+        }
+        #upgradesList {
+          contain: layout style;
+        }
       }
 
       .click-particle {
@@ -376,7 +387,7 @@
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: box-shadow 0.2s ease, background-color 0.2s ease;
       }
 
       .glass-card:hover {
@@ -435,7 +446,7 @@
 
       .upgrade-item {
         word-break: break-word;
-        transition: all 0.2s ease;
+        transition: transform 0.15s ease, background-color 0.15s ease;
       }
 
       .upgrade-item:hover {
@@ -449,7 +460,7 @@
 
       /* Button Improvements */
       button {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
         position: relative;
       }
 
@@ -464,6 +475,25 @@
       button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+      }
+
+      /* On mobile: no hover transforms at all — touch doesn't have hover */
+      @media (hover: none) {
+        button:hover:not(:disabled) {
+          transform: none;
+        }
+        .upgrade-item:hover {
+          transform: none;
+          background: none;
+        }
+        .city-card:hover {
+          transform: none;
+          box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12);
+        }
+        .glass-card:hover {
+          transform: none;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
       }
 
       @keyframes pulse-red {
@@ -1468,6 +1498,12 @@
             >
               📢 Campaign Active!
             </div>
+          </div>
+
+          <!-- Supply Warning Banner — shown when any supply hits zero -->
+          <div id="supplyWarningBanner" class="hidden mt-3 p-3 bg-red-500 rounded-xl border-2 border-red-600 text-white text-center animate-pulse">
+            <div class="font-black text-sm" id="supplyWarningText">⚠️ Out of supplies — income reduced 85%!</div>
+            <button onclick="switchTab('supply')" class="mt-1 text-xs underline font-bold opacity-90 hover:opacity-100">Restock now →</button>
           </div>
 
           <!-- Supply Rush Indicator -->
@@ -2485,19 +2521,19 @@
       function _buildInitialUpgrades() {
         return {
           staff: {
-            chef:    { owned: 0, baseCost: 25,   income: 1.0, name: "Hire a Chef",         icon: "👨‍🍳", category: "staff" },
-            waiter:  { owned: 0, baseCost: 75,   income: 1.5, name: "Hire a Waiter",       icon: "🧑",  category: "staff" },
-            manager: { owned: 0, baseCost: 400,  income: 4,   name: "Hire a Manager",      icon: "👔",  category: "staff" },
+            chef:    { owned: 0, baseCost: 25,   income: 1.5, name: "Hire a Chef",         icon: "👨‍🍳", category: "staff" },
+            waiter:  { owned: 0, baseCost: 75,   income: 3.0, name: "Hire a Waiter",       icon: "🧑",  category: "staff" },
+            manager: { owned: 0, baseCost: 400,  income: 8,   name: "Hire a Manager",      icon: "👔",  category: "staff" },
           },
           equipment: {
-            grill:   { owned: 0, baseCost: 150,  income: 2,   name: "Buy Grill Machine",   icon: "🍳",  category: "equipment" },
-            oven:    { owned: 0, baseCost: 600,  income: 6,   name: "Buy Oven",            icon: "🥘",  category: "equipment" },
-            freezer: { owned: 0, baseCost: 1800, income: 12,  name: "Buy Freezer",         icon: "❄️",  category: "equipment" },
+            grill:   { owned: 0, baseCost: 150,  income: 4,   name: "Buy Grill Machine",   icon: "🍳",  category: "equipment" },
+            oven:    { owned: 0, baseCost: 600,  income: 12,  name: "Buy Oven",            icon: "🥘",  category: "equipment" },
+            freezer: { owned: 0, baseCost: 1800, income: 25,  name: "Buy Freezer",         icon: "❄️",  category: "equipment" },
           },
           business: {
-            marketing: { owned: 0, baseCost: 250,  income: 1.2, name: "Marketing Campaign", icon: "📢", category: "business" },
-            delivery:  { owned: 0, baseCost: 1200, income: 5,   name: "Start Delivery",     icon: "🚗", category: "business" },
-            franchise: { owned: 0, baseCost: 8000, income: 20,  name: "Franchise",          icon: "🌍", category: "business" },
+            marketing: { owned: 0, baseCost: 250,  income: 2.5, name: "Marketing Campaign", icon: "📢", category: "business" },
+            delivery:  { owned: 0, baseCost: 1200, income: 10,  name: "Start Delivery",     icon: "🚗", category: "business" },
+            franchise: { owned: 0, baseCost: 8000, income: 40,  name: "Franchise",          icon: "🌍", category: "business" },
           },
           security: {
             camera: { owned: 0, baseCost: 150,  security: 5,  name: "CCTV Cameras",    icon: "📷", category: "security" },
@@ -3756,52 +3792,32 @@
         const additions = {
           staff: {
             trainer: {
-              owned: 0,
-              baseCost: 2200,
-              income: 14,
-              name: "Staff Trainer",
-              icon: "🧠",
-              category: "staff",
+              owned: 0, baseCost: 2200, income: 28,
+              name: "Staff Trainer", icon: "🧠", category: "staff",
             },
           },
           equipment: {
             smartGrill: {
-              owned: 0,
-              baseCost: 7500,
-              income: 40,
-              name: "Smart Grill AI",
-              icon: "🤖",
-              category: "equipment",
+              owned: 0, baseCost: 7500, income: 80,
+              name: "Smart Grill AI", icon: "🤖", category: "equipment",
             },
           },
           business: {
             foodTruckFleet: {
-              owned: 0,
-              baseCost: 15000,
-              income: 70,
-              name: "Food Truck Fleet",
-              icon: "🚚",
-              category: "business",
+              owned: 0, baseCost: 15000, income: 140,
+              name: "Food Truck Fleet", icon: "🚚", category: "business",
             },
           },
           security: {
             cyberWatch: {
-              owned: 0,
-              baseCost: 4200,
-              security: 55,
-              name: "Cyber Watch",
-              icon: "🛰️",
-              category: "security",
+              owned: 0, baseCost: 4200, security: 55,
+              name: "Cyber Watch", icon: "🛰️", category: "security",
             },
           },
           management: {
             dataAnalyst: {
-              owned: 0,
-              baseCost: 65000,
-              offlineMult: 0.45,
-              name: "Data Analyst",
-              icon: "📊",
-              category: "management",
+              owned: 0, baseCost: 65000, offlineMult: 0.45,
+              name: "Data Analyst", icon: "📊", category: "management",
               desc: "+45% Offline Income",
             },
           },
@@ -3992,9 +4008,10 @@
         const city = gameState.cities[cityKey];
         if (!city) return Infinity;
         const level = Math.max(1, city.level || 1);
-        const hardness = 1 + getUnlockedCityCount() * 0.08;
+        const hardness = 1 + getUnlockedCityCount() * 0.05;
+        // Reduced exponent 1.55 → 1.35 and hardness multiplier for smoother progression
         return Math.floor(
-          city.levelCostBase * Math.pow(1.55, level - 1) * hardness,
+          city.levelCostBase * Math.pow(1.35, level - 1) * hardness,
         );
       }
 
@@ -4187,7 +4204,8 @@
           city.costBonus *
           profile.upgradeCostMult *
           risk.upgradeCostMult;
-        return Math.floor(baseCost * Math.pow(1.15, upgrade.owned));
+        // Reduced scaling from 1.15 → 1.12 so upgrades stay affordable longer
+        return Math.floor(baseCost * Math.pow(1.12, upgrade.owned));
       }
 
       // ============================================
@@ -4454,10 +4472,14 @@
         // Supply bars — cheap, just width updates
         updateSupplyDisplay();
 
-        // Supply tab full re-render only when open
+        // Supply tab full re-render only when open AND supply values changed
         const supplyTab = document.getElementById("supply-tab");
         if (supplyTab && !supplyTab.classList.contains("hidden")) {
-          renderSupply();
+          const supplyKey = `${Math.floor(gameState.supply.meat.stock)}|${Math.floor(gameState.supply.bread.stock)}|${Math.floor(gameState.supply.vegetables.stock)}|${gameState.bulkBuyMode}|${gameState.supplyRush.active}`;
+          if (_displayCache.lastSupplyKey !== supplyKey) {
+            _displayCache.lastSupplyKey = supplyKey;
+            renderSupply();
+          }
         }
 
         // Upgrade affordability — throttled: only update when kebab floor changes by ≥1%
@@ -4625,11 +4647,32 @@
         updateSupplyBar(vegBar, gameState.supply.vegetables);
 
         // Show red dot on mobile nav Supply button when any supply is low
-        const anyLow = gameState.supply.meat.stock < gameState.supply.meat.maxStock * 0.15
-          || gameState.supply.bread.stock < gameState.supply.bread.maxStock * 0.15
-          || gameState.supply.vegetables.stock < gameState.supply.vegetables.maxStock * 0.15;
+        const meat = gameState.supply.meat;
+        const bread = gameState.supply.bread;
+        const veg = gameState.supply.vegetables;
+        const anyLow = meat.stock < meat.maxStock * 0.15
+          || bread.stock < bread.maxStock * 0.15
+          || veg.stock < veg.maxStock * 0.15;
         const badge = document.getElementById("supply-nav-badge");
         if (badge) badge.classList.toggle("hidden", !anyLow);
+
+        // Supply warning banner — show when any supply used by current menu item is at zero
+        const menuItem = gameState.menuItems[gameState.selectedMenuItem] || gameState.menuItems["kebab"];
+        const usage = menuItem.supplyUsage;
+        const outItems = [];
+        if (usage.meat > 0 && meat.stock <= 0) outItems.push("🥩 Meat");
+        if (usage.bread > 0 && bread.stock <= 0) outItems.push("🍞 Bread");
+        if (usage.vegetables > 0 && veg.stock <= 0) outItems.push("🥬 Veg");
+        const banner = document.getElementById("supplyWarningBanner");
+        const bannerText = document.getElementById("supplyWarningText");
+        if (banner) {
+          if (outItems.length > 0) {
+            banner.classList.remove("hidden");
+            if (bannerText) bannerText.textContent = `⚠️ Out of ${outItems.join(", ")} — income reduced 85%!`;
+          } else {
+            banner.classList.add("hidden");
+          }
+        }
       }
 
       function updateSupplyBar(bar, supply) {
@@ -5307,7 +5350,9 @@
           if (usage.vegetables > 0 && gameState.supply.vegetables.stock <= 0)
             hasSupplies = false;
 
-          let clickValue = 1 + gameState.level * 0.1;
+          // Click value: base 2 + 0.5 per level so early game feels snappy
+          // Level 1 = 2.5/click, Level 5 = 4.5/click, Level 10 = 7/click
+          let clickValue = 2 + gameState.level * 0.5;
           const cityProfile = getCityProfile(gameState.currentCity);
           const clickIncomeMult =
             cityProfile.clickMult *
@@ -5572,7 +5617,8 @@
         if (gameState.kebabs >= cost) {
           gameState.kebabs -= cost;
           gameState.upgrades[category][key].owned++;
-          _displayCache.upgradesDirty = true; // trigger stats recalc in updateDisplay
+          _displayCache.upgradesDirty = true;
+          incomeCache = null; // force income recalc after purchase
 
           // Add XP for purchase
           addXP(Math.floor(cost / 10));
@@ -7597,9 +7643,10 @@
 
       // Prestige function - called from UI button
       function getPrestigeRequirement() {
-        const baseRequirement = 40000;
+        // Prestige 1: 25,000 total earned (~15-20 min first run)
+        // Each subsequent prestige: +50% requirement
         const nextLevel = (gameState.prestige.count || 0) + 1;
-        return baseRequirement * nextLevel;
+        return Math.floor(25000 * Math.pow(1.5, nextLevel - 1));
       }
 
       window.prestige = function () {
@@ -9675,13 +9722,9 @@
         const dtSec = (now - lastFrameTime) / 1000;
         lastFrameTime = now;
 
-        // Offline/background mode should not consume supplies or reduce reputation.
-        // We rely on the dedicated offline earnings flow during load instead.
-        if (document.hidden) {
-          return;
-        }
+        if (document.hidden) return;
 
-        // Update game time
+        // Update game time and weather
         updateTimeCycle(dtSec);
         updateWeather(dtSec);
 
@@ -9693,62 +9736,46 @@
         // Consume supplies
         consumeSupplies(dtSec);
 
-        // Try to spawn visitors
-        if (Math.random() < 0.001) {
-          // 0.1% chance per tick
-          trySpawnVisitor();
+        // Throttle expensive checks — run at most once per second regardless of tick rate
+        const nowSec = Math.floor(now / 1000);
+        if (_gameLoopLastSec !== nowSec) {
+          _gameLoopLastSec = nowSec;
+
+          // Visitor spawn — 6% chance per second
+          if (Math.random() < 0.06) trySpawnVisitor();
+
+          // City events, marketing, supply rush, contracts, session goals
+          checkRandomEvents();
+          checkMarketingCampaigns();
+          checkSupplyRush();
+          checkCityContracts();
+          checkSessionGoals();
+
+          // Trade market rotation — only when community tab is open
+          const commTab = document.getElementById("community-tab");
+          if (commTab && !commTab.classList.contains("hidden")) {
+            refreshTradeMarket();
+          }
         }
 
-        // Check for random events
-        checkRandomEvents();
-
-        // Check marketing campaigns
-        checkMarketingCampaigns();
-
-        // Check supply rush
-        checkSupplyRush();
-        checkCityContracts();
-        checkSessionGoals();
-
-        // Rotate market trades periodically
-        refreshTradeMarket();
-
-        // Update boost timer
-        if (gameState.boostActive && Date.now() > gameState.boostEndTime) {
+        // Boost / hype / visitor expiry — cheap, run every tick
+        if (gameState.boostActive && now > gameState.boostEndTime) {
           gameState.boostActive = false;
         }
-
-        // Update temporary boost
-        if (
-          gameState.temporaryBoost > 1 &&
-          Date.now() > gameState.temporaryBoostEndTime
-        ) {
+        if (gameState.temporaryBoost > 1 && now > gameState.temporaryBoostEndTime) {
           gameState.temporaryBoost = 1;
         }
-
-        // Update hype bonus
-        if (gameState.hypeBonus > 1 && Date.now() > gameState.hypeEndTime) {
+        if (gameState.hypeBonus > 1 && now > gameState.hypeEndTime) {
           gameState.hypeBonus = 1;
         }
-
-        // Update visitor
-        if (gameState.currentVisitor && Date.now() > gameState.visitorEndTime) {
+        if (gameState.currentVisitor && now > gameState.visitorEndTime) {
           gameState.currentVisitor = null;
         }
-
-        // Update city event
-        if (
-          gameState.cityEventState.name &&
-          Date.now() > gameState.cityEventState.endsAt
-        ) {
-          gameState.cityEventState = {
-            name: null,
-            multiplier: 1,
-            endsAt: 0,
-            type: null,
-          };
+        if (gameState.cityEventState.name && now > gameState.cityEventState.endsAt) {
+          gameState.cityEventState = { name: null, multiplier: 1, endsAt: 0, type: null };
         }
       }
+      let _gameLoopLastSec = 0;
 
       // Render loop (runs every 250ms desktop / 600ms mobile)
       function renderLoop() {
@@ -9833,6 +9860,15 @@
           // Small delay so the progress bar animation finishes
           setTimeout(() => loadingScreen.classList.add("hidden-screen"), 300);
         }
+
+        // Safety timeout — if something went wrong and loading screen is still visible after 6s, hide it anyway
+        setTimeout(() => {
+          const ls = document.getElementById("loading-screen");
+          if (ls && !ls.classList.contains("hidden-screen")) {
+            ls.classList.add("hidden-screen");
+            showNotification("⚠️ Slow connection — running in local mode", "error");
+          }
+        }, 6000);
 
         // Sync offline indicator state now that DOM exists
         _updateOfflineIndicator();
